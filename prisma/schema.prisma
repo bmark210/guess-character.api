@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Character {
+  id                 String             @id @default(uuid())
+  name               String
+  description        String
+  img                String
+  type               CharacterType
+  mention            MentionType
+  level              Difficulty
+  status             SocialStatus?
+  traits             PersonalityTraits?
+  associatedPersonId String?
+  associatedPerson   Character?         @relation("PersonToItem", fields: [associatedPersonId], references: [id])
+  relatedItems       Character[]        @relation("PersonToItem")
+
+  @@map("characters")
+}
+
+enum CharacterType {
+  PERSON
+  NOTHUMAN
+  FOOD
+  PLACE
+}
+
+enum MentionType {
+  OLDTESTAMENT
+  NEWTESTAMENT
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum SocialStatus {
+  KING
+  PROPHET
+  PRIEST
+  WARRIOR
+  SERVANT
+  COMMONER
+  UNKNOWN
+}
+
+enum PersonalityTraits {
+  KIND
+  WISE
+  STRONG
+  FAITHFUL
+  BRAVE
+  DECEPTIVE
+  ARROGANT
+  MERCIFUL
+  RUTHLESS
+  UNKNOWN
+}
