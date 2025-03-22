@@ -1,6 +1,5 @@
-// src/bot/services/bot.service.ts
 import { Injectable } from '@nestjs/common';
-import { Telegraf } from 'telegraf';
+import { Telegraf, Markup } from 'telegraf';
 import Fastify from 'fastify';
 
 @Injectable()
@@ -12,7 +11,18 @@ export class BotService {
     if (!token) throw new Error('BOT_TOKEN is missing!');
     this.bot = new Telegraf(token);
 
-    this.bot.start((ctx) => ctx.reply('Привет от Fastify!'));
+    this.bot.start((ctx) => {
+      const username = ctx.from?.first_name || 'User';
+      ctx.reply(
+        `Привет, ${username}! 👋\n\nНажми кнопку ниже, чтобы начать игру!`,
+        Markup.inlineKeyboard([
+          Markup.button.webApp(
+            'Начать игру',
+            'https://guess-bible-character.vercel.app',
+          ),
+        ]),
+      );
+    });
   }
 
   async setupWebhook() {
