@@ -24,3 +24,9 @@ EXPOSE 3000
 
 # Define the command to run the application
 CMD ["node", "dist/main"]
+
+# Set the DATABASE_URL environment variable
+ENV DATABASE_URL=
+
+# Copy the .env file
+COPY .env .env
