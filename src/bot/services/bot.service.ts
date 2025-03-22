@@ -38,7 +38,7 @@ export class BotService {
       return '';
     });
 
-    fastify.listen({ port: 3001 }, () => {
+    fastify.listen({ port: Number(process.env.PORT || 3000) }, () => {
       console.log(`🚀 Webhook running at ${webhookUrl}`);
     });
   }
