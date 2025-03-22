@@ -1,29 +1,35 @@
-// bot.service.ts
-import { Injectable, INestApplication } from '@nestjs/common';
+// src/bot/services/bot.service.ts
+import { Injectable } from '@nestjs/common';
 import { Telegraf } from 'telegraf';
+import Fastify from 'fastify';
 
 @Injectable()
 export class BotService {
-  private bot: Telegraf;
+  private readonly bot: Telegraf;
 
   constructor() {
     const token = process.env.BOT_TOKEN;
     if (!token) throw new Error('BOT_TOKEN is missing!');
     this.bot = new Telegraf(token);
 
-    this.bot.start((ctx) => {
-      ctx.reply('Привет от NestJS бота!');
-    });
+    this.bot.start((ctx) => ctx.reply('Привет от Fastify!'));
   }
 
-  async setupWebhook(app: INestApplication) {
-    const token = process.env.BOT_TOKEN;
-    const domain = process.env.BOT_WEBHOOK_DOMAIN;
-    const path = `/bot/${token}`;
-    const fullUrl = `${domain}${path}`;
+  async setupWebhook() {
+    const fastify = Fastify();
 
-    await this.bot.telegram.setWebhook(fullUrl); // 👈 Telegram узнаёт, куда слать запросы
-    app.use(path, this.bot.webhookCallback(path)); // 👈 NestJS принимает запросы
-    console.log(`✅ Webhook установлен: ${fullUrl}`);
+    const webhookPath = `/bot${process.env.BOT_TOKEN}`;
+    const webhookUrl = `${process.env.BOT_WEBHOOK_DOMAIN}${webhookPath}`;
+
+    await this.bot.telegram.setWebhook(webhookUrl);
+
+    fastify.post(webhookPath, async (request, reply) => {
+      await this.bot.handleUpdate(request.body as any, reply.raw);
+      return '';
+    });
+
+    fastify.listen({ port: 3001 }, () => {
+      console.log(`🚀 Webhook running at ${webhookUrl}`);
+    });
   }
 }

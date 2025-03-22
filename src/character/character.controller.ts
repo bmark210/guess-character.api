@@ -7,9 +7,12 @@ import {
   Delete,
   Param,
   Put,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { CharacterService } from './character.service';
 import { CreateCharacterDto } from '../dts/create-character.dto';
+import { put } from '@vercel/blob';
+import * as sharp from 'sharp';
 
 @Controller('characters')
 export class CharacterController {
@@ -38,5 +41,27 @@ export class CharacterController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.characterService.delete(id);
+  }
+
+  @Post('add-image')
+  async addImage(@Body() body: { image: string }) {
+    try {
+      if (!body.image) {
+        throw new Error('Image data is missing');
+      }
+
+      const buffer = Buffer.from(body.image, 'base64');
+
+      const webpImage = await sharp(buffer).webp().toBuffer();
+
+      const { url } = await put(`characters/${Date.now()}.webp`, webpImage, {
+        access: 'public',
+      });
+
+      return { url };
+    } catch (error) {
+      console.error('❌ Error in add-image:', error);
+      throw new InternalServerErrorException('Image processing failed');
+    }
   }
 }
