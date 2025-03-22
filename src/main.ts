@@ -18,6 +18,6 @@ async function bootstrap() {
   const botService = app.get(BotService);
   await botService.setupWebhook();
 
-  await app.listen(3000);
+  await app.listen(Number(process.env.PORT || 3000));
 }
 bootstrap();
