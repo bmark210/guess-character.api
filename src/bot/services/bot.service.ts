@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Telegraf, Markup } from 'telegraf';
-import Fastify from 'fastify';
+import { FastifyInstance } from 'fastify';
 
 @Injectable()
 export class BotService {
@@ -25,21 +25,19 @@ export class BotService {
     });
   }
 
-  async setupWebhook() {
-    const fastify = Fastify();
+  async setupWebhook(server: FastifyInstance) {
+    const token = process.env.BOT_TOKEN;
+    const domain = process.env.BOT_WEBHOOK_DOMAIN;
+    const path = `/bot${token}`;
+    const fullUrl = `${domain}${path}`;
 
-    const webhookPath = `/bot${process.env.BOT_TOKEN}`;
-    const webhookUrl = `${process.env.BOT_WEBHOOK_DOMAIN}${webhookPath}`;
+    await this.bot.telegram.setWebhook(fullUrl);
 
-    await this.bot.telegram.setWebhook(webhookUrl);
-
-    fastify.post(webhookPath, async (request, reply) => {
+    server.post(path, async (request, reply) => {
       await this.bot.handleUpdate(request.body as any, reply.raw);
-      return '';
+      reply.send();
     });
 
-    fastify.listen({ port: Number(process.env.PORT || 3000) }, () => {
-      console.log(`🚀 Webhook running at ${webhookUrl}`);
-    });
+    console.log(`🚀 Webhook registered at ${fullUrl}`);
   }
 }
