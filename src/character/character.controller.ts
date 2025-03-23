@@ -1,4 +1,3 @@
-// src/character/character.controller.ts
 import {
   Controller,
   Post,
@@ -11,6 +10,8 @@ import {
 } from '@nestjs/common';
 import { CharacterService } from './character.service';
 import { CreateCharacterDto } from '../dts/create-character.dto';
+
+// Make sure you have: npm install sharp @vercel/blob
 import { put } from '@vercel/blob';
 import * as sharp from 'sharp';
 
@@ -43,17 +44,24 @@ export class CharacterController {
     return this.characterService.delete(id);
   }
 
+  /**
+   * Endpoint for uploading an image to Vercel Blob storage.
+   * Expects a JSON body with { "image": "<base64 string>" }.
+   */
   @Post('add-image')
   async addImage(@Body() body: { image: string }) {
     try {
-      if (!body.image) {
+      if (!body?.image) {
         throw new Error('Image data is missing');
       }
 
+      // Convert base64 to Buffer
       const buffer = Buffer.from(body.image, 'base64');
 
+      // Convert to WebP using sharp
       const webpImage = await sharp(buffer).webp().toBuffer();
 
+      // Upload to Vercel Blob (ensure you have properly configured your project)
       const { url } = await put(`characters/${Date.now()}.webp`, webpImage, {
         access: 'public',
       });

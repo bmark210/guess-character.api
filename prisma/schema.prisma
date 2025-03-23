@@ -1,45 +1,19 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+datasource db {
+  provider = "postgresql" // or "mysql", "sqlite", etc.
+  url      = env("DATABASE_URL")
+}
 
 generator client {
   provider = "prisma-client-js"
 }
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-model Character {
-  id                 String             @id @default(uuid())
-  name               String
-  description        String
-  img                String
-  type               CharacterType
-  mention            MentionType
-  level              Difficulty
-  status             SocialStatus?
-  traits             PersonalityTraits?
-  associatedPersonId String?
-  associatedPerson   Character?         @relation("PersonToItem", fields: [associatedPersonId], references: [id])
-  relatedItems       Character[]        @relation("PersonToItem")
-
-  @@map("characters")
-}
-
+// =========== Enums ===========
 enum CharacterType {
   PERSON
-  NOTHUMAN
+  ENTITY
   FOOD
+  OBJECT
   PLACE
-}
-
-enum MentionType {
-  OLDTESTAMENT
-  NEWTESTAMENT
 }
 
 enum Difficulty {
@@ -49,24 +23,167 @@ enum Difficulty {
 }
 
 enum SocialStatus {
-  KING
-  PROPHET
-  PRIEST
-  WARRIOR
-  SERVANT
-  COMMONER
+  AUTHORITY
+  SPIRITUAL_LEADER
+  TEACHER
+  SERVANT_CLASS
+  LABORER
+  HEALER
+  MARGINALIZED
+  FOREIGNER
+  CITIZEN
+  PRISONER
+  RIGHTEOUS
+  SINNER
+  SYMBOLIC_ROLE
   UNKNOWN
 }
 
-enum PersonalityTraits {
-  KIND
-  WISE
-  STRONG
-  FAITHFUL
-  BRAVE
-  DECEPTIVE
-  ARROGANT
-  MERCIFUL
-  RUTHLESS
+enum EntityType {
+  ANIMAL
+  BIRD
+  FISH
+  INSECT
+  PLANT
+  ANGELIC_BEING
+  MYTHICAL_BEAST
+  SUPERNATURAL
+  OTHER
+}
+
+enum FoodType {
+  PLANT_BASED
+  ANIMAL_BASED
+  COOKED
+  RAW
+  LIQUID
+  RITUAL
+  PRESERVED
+  COMMON
+  LUXURY
+  SYMBOLIC
+  OTHER
+}
+
+enum Material {
+  ORGANIC
+  MINERAL
+  METALLIC
+  TEXTILE
+  PRECIOUS
+  LIQUID_BASED
+  EARTH_BASED
   UNKNOWN
+  OTHER
+}
+
+enum ObjectUsage {
+  FUNCTIONAL
+  REPRESENTATIONAL
+  SACRED
+  COMMUNICATIVE
+  SUPPORTIVE
+  AESTHETIC
+  UNKNOWN
+  OTHER
+}
+
+enum PlaceType {
+  NATURAL_FEATURE
+  SETTLEMENT
+  WILDERNESS
+  SACRED_PLACE
+  REGION
+  PATHWAY
+  SYMBOLIC_PLACE
+  OTHER
+}
+
+// ========== BaseEntity ==========
+//
+// Stores shared fields for any "character" type.
+//
+model BaseEntity {
+  id          String        @id @default(uuid())
+  name        String
+  description String
+  mention     String
+  type        CharacterType
+  level       Difficulty
+
+  // One-to-one relations with child models
+  person     Person?
+  entity     Entity?
+  foodItem   FoodItem?
+  objectItem ObjectItem?
+  place      Place?
+
+  @@map("base_entities")
+}
+
+// ========== Person ==========
+//
+// Only for type = PERSON.
+//
+model Person {
+  baseId String     @id
+  base   BaseEntity @relation(fields: [baseId], references: [id])
+
+  traits String[]      @default([])
+  status SocialStatus?
+
+  @@map("people")
+}
+
+// ========== Entity ==========
+//
+// Only for type = ENTITY.
+//
+model Entity {
+  baseId String     @id
+  base   BaseEntity @relation(fields: [baseId], references: [id])
+
+  entityType EntityType?
+
+  @@map("entities")
+}
+
+// ========== FoodItem ==========
+//
+// Only for type = FOOD.
+//
+model FoodItem {
+  baseId String     @id
+  base   BaseEntity @relation(fields: [baseId], references: [id])
+
+  foodType FoodType?
+
+  @@map("food_items")
+}
+
+// ========== ObjectItem ==========
+//
+// Only for type = OBJECT.
+//
+model ObjectItem {
+  baseId String     @id
+  base   BaseEntity @relation(fields: [baseId], references: [id])
+
+  material Material?
+  usage    ObjectUsage?
+
+  @@map("object_items")
+}
+
+// ========== Place ==========
+//
+// Only for type = PLACE.
+//
+model Place {
+  baseId String     @id
+  base   BaseEntity @relation(fields: [baseId], references: [id])
+
+  placeType PlaceType?
+
+  @@map("places")
 }

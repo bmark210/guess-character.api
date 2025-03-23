@@ -1,18 +1,26 @@
 import {
   CharacterType,
   Difficulty,
-  MentionType,
-  PersonalityTraits,
   SocialStatus,
+  EntityType,
+  FoodType,
+  Material,
+  ObjectUsage,
+  PlaceType,
 } from '@prisma/client';
 
 export class CreateCharacterDto {
   name: string;
   description: string;
-  img: string;
+  mention: string;
   type: CharacterType;
-  mention: MentionType;
   level: Difficulty;
-  traits?: PersonalityTraits;
+  image?: string;
+  traits?: string[];
   status?: SocialStatus;
+  entityType?: EntityType;
+  foodType?: FoodType;
+  material?: Material;
+  usage?: ObjectUsage;
+  placeType?: PlaceType;
 }
