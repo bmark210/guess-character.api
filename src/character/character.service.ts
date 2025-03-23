@@ -161,8 +161,8 @@ export class CharacterService {
         return tx.person.create({
           data: {
             baseId,
-            traits: data.traits ?? [],
-            status: data.status,
+            traits: data.person?.traits ?? [],
+            status: data.person?.status,
           },
         });
 
@@ -170,7 +170,7 @@ export class CharacterService {
         return tx.entity.create({
           data: {
             baseId,
-            entityType: data.entityType,
+            entityType: data.entity?.entityType,
           },
         });
 
@@ -178,7 +178,7 @@ export class CharacterService {
         return tx.foodItem.create({
           data: {
             baseId,
-            foodType: data.foodType,
+            foodType: data.foodItem?.foodType,
           },
         });
 
@@ -186,8 +186,8 @@ export class CharacterService {
         return tx.objectItem.create({
           data: {
             baseId,
-            material: data.material,
-            usage: data.usage,
+            material: data.objectItem?.material,
+            usage: data.objectItem?.usage,
           },
         });
 
@@ -195,7 +195,7 @@ export class CharacterService {
         return tx.place.create({
           data: {
             baseId,
-            placeType: data.placeType,
+            placeType: data.place?.placeType,
           },
         });
 
@@ -230,8 +230,8 @@ export class CharacterService {
           return tx.person.update({
             where: { baseId },
             data: {
-              traits: data.traits ?? [],
-              status: data.status,
+              traits: data.person?.traits ?? [],
+              status: data.person?.status,
             },
           });
 
@@ -239,7 +239,7 @@ export class CharacterService {
           return tx.entity.update({
             where: { baseId },
             data: {
-              entityType: data.entityType,
+              entityType: data.entity?.entityType,
             },
           });
 
@@ -247,7 +247,7 @@ export class CharacterService {
           return tx.foodItem.update({
             where: { baseId },
             data: {
-              foodType: data.foodType,
+              foodType: data.foodItem?.foodType,
             },
           });
 
@@ -255,8 +255,8 @@ export class CharacterService {
           return tx.objectItem.update({
             where: { baseId },
             data: {
-              material: data.material,
-              usage: data.usage,
+              material: data.objectItem?.material,
+              usage: data.objectItem?.usage,
             },
           });
 
@@ -264,7 +264,7 @@ export class CharacterService {
           return tx.place.update({
             where: { baseId },
             data: {
-              placeType: data.placeType,
+              placeType: data.place?.placeType,
             },
           });
 

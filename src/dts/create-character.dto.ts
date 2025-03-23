@@ -16,11 +16,26 @@ export class CreateCharacterDto {
   type: CharacterType;
   level: Difficulty;
   image?: string;
-  traits?: string[];
-  status?: SocialStatus;
-  entityType?: EntityType;
-  foodType?: FoodType;
-  material?: Material;
-  usage?: ObjectUsage;
-  placeType?: PlaceType;
+
+  person?: {
+    traits?: string[];
+    status?: SocialStatus;
+  };
+
+  entity?: {
+    entityType?: EntityType;
+  };
+
+  foodItem?: {
+    foodType?: FoodType;
+  };
+
+  objectItem?: {
+    material?: Material;
+    usage?: ObjectUsage;
+  };
+
+  place?: {
+    placeType?: PlaceType;
+  };
 }
