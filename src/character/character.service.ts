@@ -17,16 +17,20 @@ export class CharacterService {
    * 2) Conditionally creates a child record (Person, FoodItem, etc.)
    */
   async create(data: CreateCharacterDto) {
-    const forbiddenPatterns = ['le', 'km'];
-
-    const lowerName = data.name.toLowerCase();
-    if (forbiddenPatterns.some((pattern) => lowerName.includes(pattern))) {
-      throw new Error(
-        `Name cannot contain the following patterns: ${forbiddenPatterns.join(', ')}`,
-      );
-    }
-
     return this.prisma.$transaction(async (tx) => {
+      // Check for duplicate name or mention
+      const existing = await tx.baseEntity.findFirst({
+        where: {
+          OR: [{ name: data.name }, { mention: data.mention }],
+        },
+      });
+
+      if (existing) {
+        throw new Error(
+          `❌ Character with the same name or mention already exists (name: "${data.name}", mention: "${data.mention}")`,
+        );
+      }
+
       // 1) Create the base entity with the shared fields
       const base = await tx.baseEntity.create({
         data: {
