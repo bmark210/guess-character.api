@@ -17,6 +17,15 @@ export class CharacterService {
    * 2) Conditionally creates a child record (Person, FoodItem, etc.)
    */
   async create(data: CreateCharacterDto) {
+    const forbiddenPatterns = ['le', 'km'];
+
+    const lowerName = data.name.toLowerCase();
+    if (forbiddenPatterns.some((pattern) => lowerName.includes(pattern))) {
+      throw new Error(
+        `Name cannot contain the following patterns: ${forbiddenPatterns.join(', ')}`,
+      );
+    }
+
     return this.prisma.$transaction(async (tx) => {
       // 1) Create the base entity with the shared fields
       const base = await tx.baseEntity.create({

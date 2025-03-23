@@ -99,10 +99,6 @@ enum PlaceType {
   OTHER
 }
 
-// ========== BaseEntity ==========
-//
-// Stores shared fields for any "character" type.
-//
 model BaseEntity {
   id          String        @id @default(uuid())
   name        String
@@ -121,13 +117,9 @@ model BaseEntity {
   @@map("base_entities")
 }
 
-// ========== Person ==========
-//
-// Only for type = PERSON.
-//
 model Person {
   baseId String     @id
-  base   BaseEntity @relation(fields: [baseId], references: [id])
+  base   BaseEntity @relation(fields: [baseId], references: [id], onDelete: Cascade)
 
   traits String[]      @default([])
   status SocialStatus?
@@ -135,39 +127,27 @@ model Person {
   @@map("people")
 }
 
-// ========== Entity ==========
-//
-// Only for type = ENTITY.
-//
 model Entity {
   baseId String     @id
-  base   BaseEntity @relation(fields: [baseId], references: [id])
+  base   BaseEntity @relation(fields: [baseId], references: [id], onDelete: Cascade)
 
   entityType EntityType?
 
   @@map("entities")
 }
 
-// ========== FoodItem ==========
-//
-// Only for type = FOOD.
-//
 model FoodItem {
   baseId String     @id
-  base   BaseEntity @relation(fields: [baseId], references: [id])
+  base   BaseEntity @relation(fields: [baseId], references: [id], onDelete: Cascade)
 
   foodType FoodType?
 
   @@map("food_items")
 }
 
-// ========== ObjectItem ==========
-//
-// Only for type = OBJECT.
-//
 model ObjectItem {
   baseId String     @id
-  base   BaseEntity @relation(fields: [baseId], references: [id])
+  base   BaseEntity @relation(fields: [baseId], references: [id], onDelete: Cascade)
 
   material Material?
   usage    ObjectUsage?
@@ -175,13 +155,9 @@ model ObjectItem {
   @@map("object_items")
 }
 
-// ========== Place ==========
-//
-// Only for type = PLACE.
-//
 model Place {
   baseId String     @id
-  base   BaseEntity @relation(fields: [baseId], references: [id])
+  base   BaseEntity @relation(fields: [baseId], references: [id], onDelete: Cascade)
 
   placeType PlaceType?
 
