@@ -63,16 +63,34 @@ export class CharacterService {
   /**
    * Returns all BaseEntity records, including child references.
    */
-  findAll() {
-    return this.prisma.baseEntity.findMany({
-      include: {
-        person: true,
-        foodItem: true,
-        objectItem: true,
-        place: true,
-        entity: true,
+  async findAll(page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.baseEntity.findMany({
+        skip,
+        take: limit,
+        include: {
+          person: true,
+          foodItem: true,
+          objectItem: true,
+          place: true,
+          entity: true,
+        },
+      }),
+      this.prisma.baseEntity.count(),
+    ]);
+
+    return {
+      data,
+      meta: {
+        totalItems: total,
+        itemCount: data.length,
+        itemsPerPage: limit,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
       },
-    });
+    };
   }
 
   /**
