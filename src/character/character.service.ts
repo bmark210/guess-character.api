@@ -21,7 +21,7 @@ export class CharacterService {
       // Check for duplicate name or mention
       const existing = await tx.baseEntity.findFirst({
         where: {
-          OR: [{ name: data.name }, { mention: data.mention }],
+          OR: [{ name: data.name }],
         },
       });
 
@@ -37,6 +37,7 @@ export class CharacterService {
           name: data.name,
           description: data.description,
           mention: data.mention,
+          image: data.image,
           type: data.type,
           level: data.level,
         },

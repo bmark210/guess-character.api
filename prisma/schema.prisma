@@ -1,5 +1,5 @@
 datasource db {
-  provider = "postgresql" // or "mysql", "sqlite", etc.
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -104,6 +104,7 @@ model BaseEntity {
   name        String
   description String
   mention     String
+  image       String
   type        CharacterType
   level       Difficulty
 

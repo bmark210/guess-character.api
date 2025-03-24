@@ -8,7 +8,9 @@ import { BotService } from './bot/services/bot.service';
 import fastifyCors from '@fastify/cors';
 
 async function bootstrap() {
-  const adapter = new FastifyAdapter();
+  const adapter = new FastifyAdapter({
+    bodyLimit: 10485760, // Set body limit to 10MB (10 * 1024 * 1024 bytes)
+  });
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     adapter,
@@ -22,5 +24,9 @@ async function bootstrap() {
   await botService.setupWebhook(adapter.getInstance());
 
   await app.listen(Number(process.env.PORT || 3000), '0.0.0.0');
+  console.log(
+    `Server is running on http://localhost:${process.env.PORT || 3000}`,
+  );
 }
+
 bootstrap();

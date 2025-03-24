@@ -15,7 +15,7 @@ export class CreateCharacterDto {
   mention: string;
   type: CharacterType;
   level: Difficulty;
-  image?: string;
+  image: string;
 
   person?: {
     traits?: string[];
