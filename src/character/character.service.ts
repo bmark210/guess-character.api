@@ -8,7 +8,6 @@ import { Prisma, CharacterType } from '@prisma/client';
 export class CharacterService {
   constructor(private readonly prisma: PrismaService) {}
 
-
   async getNamesByBook(book: string) {
     return this.prisma.baseEntity
       .findMany({

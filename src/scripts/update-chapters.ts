@@ -19,7 +19,9 @@ async function updateChaptersAndVerses() {
           data: { chapter, verse },
         });
 
-        console.log(`Updated ${record.name}: Chapter ${chapter}, Verse ${verse}`);
+        console.log(
+          `Updated ${record.name}: Chapter ${chapter}, Verse ${verse}`,
+        );
       }
     }
 
@@ -31,4 +33,4 @@ async function updateChaptersAndVerses() {
   }
 }
 
-updateChaptersAndVerses(); 
+updateChaptersAndVerses();
