@@ -67,12 +67,8 @@ export class CharacterService {
    */
   async findAll(paginationDto: PaginationDto) {
     // Validate and normalize pagination parameters
-    const page = Number(paginationDto.page) || 1;
-    const limit = Number(paginationDto.limit) || 10;
-
-    if (page < 1 || limit < 1) {
-      throw new Error('Page and limit must be positive numbers');
-    }
+    const page = Math.max(1, Number(paginationDto.page) || 1);
+    const limit = Math.max(1, Number(paginationDto.limit) || 10);
 
     const skip = (page - 1) * limit;
 
