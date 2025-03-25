@@ -6,6 +6,7 @@ import {
 import { AppModule } from './app.module';
 import { BotService } from './bot/services/bot.service';
 import fastifyCors from '@fastify/cors';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const adapter = new FastifyAdapter({
@@ -14,6 +15,15 @@ async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     adapter,
+  );
+
+  // Enable validation pipes
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
   );
 
   app.register(fastifyCors, {

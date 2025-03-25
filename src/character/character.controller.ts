@@ -5,11 +5,13 @@ import {
   Get,
   Delete,
   Param,
-  Put,
   InternalServerErrorException,
+  Query,
+  Patch,
 } from '@nestjs/common';
 import { CharacterService } from './character.service';
 import { CreateCharacterDto } from '../dts/create-character.dto';
+import { PaginationDto } from '../dts/pagination.dto';
 
 // Make sure you have: npm install sharp @vercel/blob
 import { put } from '@vercel/blob';
@@ -25,8 +27,8 @@ export class CharacterController {
   }
 
   @Get()
-  findAll() {
-    return this.characterService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.characterService.findAll(paginationDto);
   }
 
   @Get(':id')
@@ -34,7 +36,7 @@ export class CharacterController {
     return this.characterService.findOne(id);
   }
 
-  @Put(':id')
+  @Patch(':id')
   update(@Param('id') id: string, @Body() dto: CreateCharacterDto) {
     return this.characterService.update(id, dto);
   }

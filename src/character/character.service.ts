@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { CreateCharacterDto } from '../dts/create-character.dto';
+import { PaginationDto } from '../dts/pagination.dto';
 import { Prisma } from '@prisma/client';
 
 // The following enums should match your Prisma schema
@@ -62,14 +63,28 @@ export class CharacterService {
 
   /**
    * Returns all BaseEntity records, including child references.
+   * @param paginationDto - Pagination parameters
    */
-  async findAll(page = 1, limit = 10) {
+  async findAll(paginationDto: PaginationDto) {
+    // Validate and normalize pagination parameters
+    const page = Number(paginationDto.page) || 1;
+    const limit = Number(paginationDto.limit) || 10;
+
+    if (page < 1 || limit < 1) {
+      throw new Error('Page and limit must be positive numbers');
+    }
+
     const skip = (page - 1) * limit;
 
-    const [data, total] = await this.prisma.$transaction([
+    // Get total count and paginated data in parallel
+    const [total, data] = await Promise.all([
+      this.prisma.baseEntity.count(),
       this.prisma.baseEntity.findMany({
         skip,
         take: limit,
+        orderBy: {
+          name: 'asc',
+        },
         include: {
           person: true,
           foodItem: true,
@@ -78,8 +93,16 @@ export class CharacterService {
           entity: true,
         },
       }),
-      this.prisma.baseEntity.count(),
     ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    // Validate page number
+    if (page > totalPages && total > 0) {
+      throw new Error(
+        `Page ${page} does not exist. Total pages: ${totalPages}`,
+      );
+    }
 
     return {
       data,
@@ -87,8 +110,10 @@ export class CharacterService {
         totalItems: total,
         itemCount: data.length,
         itemsPerPage: limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages,
         currentPage: page,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
       },
     };
   }
