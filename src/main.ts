@@ -9,34 +9,38 @@ import fastifyCors from '@fastify/cors';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
-  const adapter = new FastifyAdapter({
-    bodyLimit: 10485760, // Set body limit to 10MB (10 * 1024 * 1024 bytes)
-  });
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    adapter,
-  );
+  try {
+    const adapter = new FastifyAdapter({
+      bodyLimit: 10485760, // Set body limit to 10MB (10 * 1024 * 1024 bytes)
+    });
+    const app = await NestFactory.create<NestFastifyApplication>(
+      AppModule,
+      adapter,
+    );
 
-  // Enable validation pipes
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-    }),
-  );
+    // Enable validation pipes
+    app.useGlobalPipes(
+      new ValidationPipe({
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      }),
+    );
 
-  app.register(fastifyCors, {
-    origin: '*',
-  });
+    app.register(fastifyCors, {
+      origin: '*',
+    });
 
-  const botService = app.get(BotService);
-  await botService.setupWebhook(adapter.getInstance());
+    const botService = app.get(BotService);
+    await botService.setupWebhook(adapter.getInstance());
 
-  await app.listen(Number(process.env.PORT || 3000), '0.0.0.0');
-  console.log(
-    `Server is running on http://localhost:${process.env.PORT || 3000}`,
-  );
+    const port = Number(process.env.PORT || 3000);
+    await app.listen(port, '0.0.0.0');
+    console.log(`Server is running on http://localhost:${port}`);
+  } catch (error) {
+    console.error('Failed to start the application:', error);
+    process.exit(1);
+  }
 }
 
 bootstrap();

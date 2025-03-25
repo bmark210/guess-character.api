@@ -13,6 +13,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
           url: process.env.DATABASE_URL,
         },
       },
+      log: ['error'],
+      errorFormat: 'minimal',
     });
   }
 
@@ -22,6 +24,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
       console.log('✅ Connected to Prisma DB');
     } catch (error) {
       console.error('❌ Error connecting to Prisma DB:', error);
+      throw error;
     }
+  }
+
+  async onModuleDestroy() {
+    await this.$disconnect();
   }
 }
