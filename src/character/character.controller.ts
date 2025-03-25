@@ -31,6 +31,11 @@ export class CharacterController {
     return this.characterService.findAll(paginationDto);
   }
 
+  @Get('names/:book')
+  getNamesByBook(@Param('book') book: string) {
+    return this.characterService.getNamesByBook(book);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.characterService.findOne(id);

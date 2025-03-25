@@ -8,39 +8,19 @@ import { Prisma, CharacterType } from '@prisma/client';
 export class CharacterService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Parses biblical reference like "Genesis" or "Быт." into chapter and verse numbers
-   */
-  private parseBiblicalReference(mention: string): {
-    chapter: number;
-    verse: number;
-  } {
-    try {
-      // For new format, we'll return defaults since chapter and verse are stored separately
-      if (mention === 'Genesis' || mention === 'Быт.') {
-        return { chapter: 1, verse: 1 };
-      }
 
-      // For legacy format, try to parse
-      let match = mention.match(/Genesis\s*(\d+):(\d+)/);
-      if (!match) {
-        match = mention.match(/Быт\.\s*(\d+):(\d+)/);
-      }
-
-      if (!match) {
-        return { chapter: 1, verse: 1 }; // default values if parsing fails
-      }
-
-      return {
-        chapter: parseInt(match[1], 10),
-        verse: parseInt(match[2], 10),
-      };
-    } catch (error) {
-      console.error('Failed to parse biblical reference:', error);
-      return { chapter: 1, verse: 1 }; // default values if parsing fails
-    }
+  async getNamesByBook(book: string) {
+    return this.prisma.baseEntity
+      .findMany({
+        select: {
+          name: true,
+        },
+        where: {
+          mention: book,
+        },
+      })
+      .then((items) => items.map((item) => item.name));
   }
-
   /**
    * Creates a new "character" using a Table-Per-Type (TPT) pattern:
    * 1) Creates a BaseEntity record
