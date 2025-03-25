@@ -8,6 +8,8 @@ import {
   ObjectUsage,
   PlaceType,
 } from '@prisma/client';
+import { IsInt, IsOptional, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateCharacterDto {
   name: string;
@@ -16,6 +18,16 @@ export class CreateCharacterDto {
   type: CharacterType;
   level: Difficulty;
   image: string;
+
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  chapter: number;
+
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  verse: number;
 
   person?: {
     traits?: string[];

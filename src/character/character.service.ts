@@ -2,15 +2,44 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { CreateCharacterDto } from '../dts/create-character.dto';
 import { PaginationDto } from '../dts/pagination.dto';
-import { Prisma } from '@prisma/client';
-
-// The following enums should match your Prisma schema
-// or be imported from a shared file:
-import { CharacterType } from '@prisma/client'; // example path
+import { Prisma, CharacterType } from '@prisma/client';
 
 @Injectable()
 export class CharacterService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Parses biblical reference like "Genesis" or "Быт." into chapter and verse numbers
+   */
+  private parseBiblicalReference(mention: string): {
+    chapter: number;
+    verse: number;
+  } {
+    try {
+      // For new format, we'll return defaults since chapter and verse are stored separately
+      if (mention === 'Genesis' || mention === 'Быт.') {
+        return { chapter: 1, verse: 1 };
+      }
+
+      // For legacy format, try to parse
+      let match = mention.match(/Genesis\s*(\d+):(\d+)/);
+      if (!match) {
+        match = mention.match(/Быт\.\s*(\d+):(\d+)/);
+      }
+
+      if (!match) {
+        return { chapter: 1, verse: 1 }; // default values if parsing fails
+      }
+
+      return {
+        chapter: parseInt(match[1], 10),
+        verse: parseInt(match[2], 10),
+      };
+    } catch (error) {
+      console.error('Failed to parse biblical reference:', error);
+      return { chapter: 1, verse: 1 }; // default values if parsing fails
+    }
+  }
 
   /**
    * Creates a new "character" using a Table-Per-Type (TPT) pattern:
@@ -19,7 +48,7 @@ export class CharacterService {
    */
   async create(data: CreateCharacterDto) {
     return this.prisma.$transaction(async (tx) => {
-      // Check for duplicate name or mention
+      // Check for duplicate name
       const existing = await tx.baseEntity.findFirst({
         where: {
           OR: [{ name: data.name }],
@@ -28,7 +57,7 @@ export class CharacterService {
 
       if (existing) {
         throw new Error(
-          `❌ Character with the same name or mention already exists (name: "${data.name}", mention: "${data.mention}")`,
+          `❌ Character with the same name already exists (name: "${data.name}")`,
         );
       }
 
@@ -37,7 +66,9 @@ export class CharacterService {
         data: {
           name: data.name,
           description: data.description,
-          mention: data.mention,
+          mention: 'Genesis',
+          chapter: data.chapter,
+          verse: data.verse,
           image: data.image,
           type: data.type,
           level: data.level,
@@ -78,9 +109,7 @@ export class CharacterService {
       this.prisma.baseEntity.findMany({
         skip,
         take: limit,
-        orderBy: {
-          name: 'asc',
-        },
+        orderBy: [{ chapter: 'asc' }, { verse: 'asc' }],
         include: {
           person: true,
           foodItem: true,
@@ -100,8 +129,14 @@ export class CharacterService {
       );
     }
 
+    // Transform the data to include formatted mention
+    const transformedData = data.map((item) => ({
+      ...item,
+      formattedMention: `Genesis ${item.chapter}:${item.verse}`,
+    }));
+
     return {
-      data,
+      data: transformedData,
       meta: {
         totalItems: total,
         itemCount: data.length,
@@ -118,16 +153,26 @@ export class CharacterService {
    * Returns a single BaseEntity by ID, including child references.
    */
   findOne(id: string) {
-    return this.prisma.baseEntity.findUnique({
-      where: { id },
-      include: {
-        person: true,
-        foodItem: true,
-        objectItem: true,
-        place: true,
-        entity: true,
-      },
-    });
+    return this.prisma.baseEntity
+      .findUnique({
+        where: { id },
+        include: {
+          person: true,
+          foodItem: true,
+          objectItem: true,
+          place: true,
+          entity: true,
+        },
+      })
+      .then((item) => {
+        if (item) {
+          return {
+            ...item,
+            formattedMention: `Genesis ${item.chapter}:${item.verse}`,
+          };
+        }
+        return null;
+      });
   }
 
   /**
@@ -141,7 +186,9 @@ export class CharacterService {
         data: {
           name: data.name,
           description: data.description,
-          mention: data.mention,
+          mention: 'Genesis',
+          chapter: data.chapter,
+          verse: data.verse,
           type: data.type,
           level: data.level,
         },
@@ -152,7 +199,7 @@ export class CharacterService {
       await this.updateChildRecord(tx, id, data);
 
       // 3) Return the updated record with includes
-      return tx.baseEntity.findUnique({
+      const updated = await tx.baseEntity.findUnique({
         where: { id },
         include: {
           person: true,
@@ -162,6 +209,11 @@ export class CharacterService {
           entity: true,
         },
       });
+
+      return {
+        ...updated,
+        formattedMention: `Genesis ${updated.chapter}:${updated.verse}`,
+      };
     });
   }
 

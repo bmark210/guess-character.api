@@ -104,6 +104,8 @@ model BaseEntity {
   name        String
   description String
   mention     String
+  chapter     Int          @default(1)
+  verse       Int          @default(1)
   image       String
   type        CharacterType
   level       Difficulty
