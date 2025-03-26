@@ -77,42 +77,52 @@ export class CharacterService {
    * @param paginationDto - Pagination parameters
    */
   async findAll(paginationDto: PaginationDto) {
-    // Validate and normalize pagination parameters
     const page = Math.max(1, Number(paginationDto.page) || 1);
     const limit = Math.max(1, Number(paginationDto.limit) || 10);
-
     const skip = (page - 1) * limit;
 
-    // Get total count and paginated data in parallel
+    const whereClause: any = {};
+
+    // Фильтрация по упоминанию книги
+    if (paginationDto.book) {
+      whereClause.mention = paginationDto.book;
+    }
+
+    // Фильтрация по типу (если указан)
+    if (paginationDto.type) {
+      whereClause.type = paginationDto.type;
+    }
+
     const [total, data] = await Promise.all([
-      this.prisma.baseEntity.count(),
+      this.prisma.baseEntity.count({
+        where: whereClause,
+      }),
       this.prisma.baseEntity.findMany({
+        where: whereClause,
         skip,
         take: limit,
         orderBy: [{ chapter: 'asc' }, { verse: 'asc' }],
         include: {
-          person: true,
-          foodItem: true,
-          objectItem: true,
-          place: true,
-          entity: true,
+          person: paginationDto.type === 'PERSON' || !paginationDto.type,
+          foodItem: paginationDto.type === 'FOOD' || !paginationDto.type,
+          objectItem: paginationDto.type === 'OBJECT' || !paginationDto.type,
+          place: paginationDto.type === 'PLACE' || !paginationDto.type,
+          entity: paginationDto.type === 'ENTITY' || !paginationDto.type,
         },
       }),
     ]);
 
     const totalPages = Math.ceil(total / limit);
 
-    // Validate page number
     if (page > totalPages && total > 0) {
       throw new Error(
         `Page ${page} does not exist. Total pages: ${totalPages}`,
       );
     }
 
-    // Transform the data to include formatted mention
     const transformedData = data.map((item) => ({
       ...item,
-      formattedMention: `Genesis ${item.chapter}:${item.verse}`,
+      formattedMention: `${item.mention} ${item.chapter}:${item.verse}`,
     }));
 
     return {
@@ -125,6 +135,8 @@ export class CharacterService {
         currentPage: page,
         hasNextPage: page < totalPages,
         hasPreviousPage: page > 1,
+        type: whereClause.type,
+        book: whereClause.mention,
       },
     };
   }

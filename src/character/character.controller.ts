@@ -47,7 +47,6 @@ export class CharacterController {
     @Param('id') id: string,
     @Body() updateCharacterDto: UpdateCharacterDto,
   ) {
-    console.log(updateCharacterDto);
     return this.characterService.update(id, updateCharacterDto);
   }
 

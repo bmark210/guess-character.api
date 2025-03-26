@@ -18,10 +18,6 @@ async function updateChaptersAndVerses() {
           where: { id: record.id },
           data: { chapter, verse },
         });
-
-        console.log(
-          `Updated ${record.name}: Chapter ${chapter}, Verse ${verse}`,
-        );
       }
     }
 
