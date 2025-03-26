@@ -12,6 +12,7 @@ import {
 import { CharacterService } from './character.service';
 import { CreateCharacterDto } from '../dts/create-character.dto';
 import { PaginationDto } from '../dts/pagination.dto';
+import { UpdateCharacterDto } from 'src/dts/update-character.dto';
 
 // Make sure you have: npm install sharp @vercel/blob
 import { put } from '@vercel/blob';
@@ -22,8 +23,8 @@ export class CharacterController {
   constructor(private readonly characterService: CharacterService) {}
 
   @Post()
-  create(@Body() dto: CreateCharacterDto) {
-    return this.characterService.create(dto);
+  create(@Body() createCharacterDto: CreateCharacterDto) {
+    return this.characterService.create(createCharacterDto);
   }
 
   @Get()
@@ -42,8 +43,12 @@ export class CharacterController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: CreateCharacterDto) {
-    return this.characterService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() updateCharacterDto: UpdateCharacterDto,
+  ) {
+    console.log(updateCharacterDto);
+    return this.characterService.update(id, updateCharacterDto);
   }
 
   @Delete(':id')

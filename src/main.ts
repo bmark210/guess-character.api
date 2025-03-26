@@ -29,6 +29,8 @@ async function bootstrap() {
 
     app.register(fastifyCors, {
       origin: '*',
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
     });
 
     const botService = app.get(BotService);

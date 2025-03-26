@@ -3,6 +3,7 @@ import { PrismaService } from '../core/prisma.service';
 import { CreateCharacterDto } from '../dts/create-character.dto';
 import { PaginationDto } from '../dts/pagination.dto';
 import { Prisma, CharacterType } from '@prisma/client';
+import { UpdateCharacterDto } from 'src/dts/update-character.dto';
 
 @Injectable()
 export class CharacterService {
@@ -131,7 +132,7 @@ export class CharacterService {
   /**
    * Returns a single BaseEntity by ID, including child references.
    */
-  findOne(id: string) {
+  async findOne(id: string) {
     return this.prisma.baseEntity
       .findUnique({
         where: { id },
@@ -144,20 +145,15 @@ export class CharacterService {
         },
       })
       .then((item) => {
-        if (item) {
-          return {
-            ...item,
-            formattedMention: `Genesis ${item.chapter}:${item.verse}`,
-          };
-        }
-        return null;
+        return item;
       });
   }
 
   /**
    * Updates a Character record (BaseEntity + child).
    */
-  async update(id: string, data: CreateCharacterDto) {
+  async update(id: string, data: UpdateCharacterDto) {
+    console.log(data);
     return this.prisma.$transaction(async (tx) => {
       // 1) Update BaseEntity shared fields
       await tx.baseEntity.update({
@@ -165,11 +161,39 @@ export class CharacterService {
         data: {
           name: data.name,
           description: data.description,
-          mention: 'Genesis',
+          mention: data.mention,
           chapter: data.chapter,
           verse: data.verse,
           type: data.type,
           level: data.level,
+          image: data.image,
+          person: {
+            update: {
+              traits: data.person?.traits ?? [],
+              status: data.person?.status,
+            },
+          },
+          foodItem: {
+            update: {
+              foodType: data.foodItem?.foodType,
+            },
+          },
+          objectItem: {
+            update: {
+              material: data.objectItem?.material,
+              usage: data.objectItem?.usage,
+            },
+          },
+          place: {
+            update: {
+              placeType: data.place?.placeType,
+            },
+          },
+          entity: {
+            update: {
+              entityType: data.entity?.entityType,
+            },
+          },
         },
       });
 
