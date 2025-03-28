@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { CreateCharacterDto } from '../dts/create-character.dto';
 import { PaginationDto } from '../dts/pagination.dto';
 import { Prisma, CharacterType } from '@prisma/client';
 import { UpdateCharacterDto } from 'src/dts/update-character.dto';
+import { put } from '@vercel/blob';
+import * as sharp from 'sharp';
 
 @Injectable()
 export class CharacterService {
@@ -166,70 +168,48 @@ export class CharacterService {
    */
   async update(id: string, data: UpdateCharacterDto) {
     console.log(data);
-    return this.prisma.$transaction(async (tx) => {
-      // 1) Update BaseEntity shared fields
-      await tx.baseEntity.update({
-        where: { id },
-        data: {
-          name: data.name,
-          description: data.description,
-          mention: data.mention,
-          chapter: data.chapter,
-          verse: data.verse,
-          type: data.type,
-          level: data.level,
-          image: data.image,
-          person: {
-            update: {
-              traits: data.person?.traits ?? [],
-              status: data.person?.status,
-            },
+    return this.prisma.$transaction(
+      async (tx) => {
+        // 1) Update BaseEntity shared fields
+        await tx.baseEntity.update({
+          where: { id },
+          data: {
+            name: data.name,
+            description: data.description,
+            mention: data.mention,
+            chapter: data.chapter,
+            verse: data.verse,
+            type: data.type,
+            level: data.level,
+            image: data.image,
           },
-          foodItem: {
-            update: {
-              foodType: data.foodItem?.foodType,
-            },
-          },
-          objectItem: {
-            update: {
-              material: data.objectItem?.material,
-              usage: data.objectItem?.usage,
-            },
-          },
-          place: {
-            update: {
-              placeType: data.place?.placeType,
-            },
-          },
-          entity: {
-            update: {
-              entityType: data.entity?.entityType,
-            },
-          },
-        },
-      });
+        });
 
-      // 2) Update or create the child record.
-      //    We'll remove any existing child if needed (e.g., switching from PERSON to FOOD).
-      await this.updateChildRecord(tx, id, data);
+        // 2) Update or create the child record.
+        //    We'll remove any existing child if needed (e.g., switching from PERSON to FOOD).
+        await this.updateChildRecord(tx, id, data);
 
-      // 3) Return the updated record with includes
-      const updated = await tx.baseEntity.findUnique({
-        where: { id },
-        include: {
-          person: true,
-          foodItem: true,
-          objectItem: true,
-          place: true,
-          entity: true,
-        },
-      });
+        // 3) Return the updated record with includes
+        const updated = await tx.baseEntity.findUnique({
+          where: { id },
+          include: {
+            person: true,
+            foodItem: true,
+            objectItem: true,
+            place: true,
+            entity: true,
+          },
+        });
 
-      return {
-        ...updated,
-        formattedMention: `Genesis ${updated.chapter}:${updated.verse}`,
-      };
-    });
+        return {
+          ...updated,
+          formattedMention: `Genesis ${updated.chapter}:${updated.verse}`,
+        };
+      },
+      {
+        timeout: 10000, // Increase timeout to 10 seconds
+      },
+    );
   }
 
   /**
@@ -408,6 +388,30 @@ export class CharacterService {
         return tx.place.delete({ where: { baseId } }).catch(() => null);
       default:
         return null;
+    }
+  }
+
+  async addImage(image: string) {
+    try {
+      if (!image) {
+        throw new Error('Image data is missing');
+      }
+
+      // Convert base64 to Buffer
+      const buffer = Buffer.from(image, 'base64');
+
+      // Convert to WebP using sharp
+      const webpImage = await sharp(buffer).webp().toBuffer();
+
+      // Upload to Vercel Blob (ensure you have properly configured your project)
+      const { url } = await put(`characters/${Date.now()}.webp`, webpImage, {
+        access: 'public',
+      });
+
+      return { url };
+    } catch (error) {
+      console.error('❌ Error in add-image:', error);
+      throw new InternalServerErrorException('Image processing failed');
     }
   }
 }

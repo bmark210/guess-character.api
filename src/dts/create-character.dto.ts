@@ -16,10 +16,12 @@ import {
   IsArray,
   ValidateNested,
   IsNotEmpty,
+  IsBase64,
+  IsOptional,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-class PersonDto {
+export class PersonDto {
   @IsArray()
   @IsString({ each: true })
   @IsNotEmpty()
@@ -30,19 +32,19 @@ class PersonDto {
   status: SocialStatus;
 }
 
-class EntityDto {
+export class EntityDto {
   @IsEnum(EntityType)
   @IsNotEmpty()
   entityType: EntityType;
 }
 
-class FoodItemDto {
+export class FoodItemDto {
   @IsEnum(FoodType)
   @IsNotEmpty()
   foodType: FoodType;
 }
 
-class ObjectItemDto {
+export class ObjectItemDto {
   @IsEnum(Material)
   @IsNotEmpty()
   material: Material;
@@ -52,7 +54,7 @@ class ObjectItemDto {
   usage: ObjectUsage;
 }
 
-class PlaceDto {
+export class PlaceDto {
   @IsEnum(PlaceType)
   @IsNotEmpty()
   placeType: PlaceType;
@@ -95,23 +97,35 @@ export class CreateCharacterDto {
   @IsNotEmpty()
   verse: number;
 
+  @IsOptional()
   @ValidateNested()
   @Type(() => PersonDto)
   person?: PersonDto;
 
+  @IsOptional()
   @ValidateNested()
   @Type(() => EntityDto)
   entity?: EntityDto;
 
+  @IsOptional()
   @ValidateNested()
   @Type(() => FoodItemDto)
   foodItem?: FoodItemDto;
 
+  @IsOptional()
   @ValidateNested()
   @Type(() => ObjectItemDto)
   objectItem?: ObjectItemDto;
 
+  @IsOptional()
   @ValidateNested()
   @Type(() => PlaceDto)
   place?: PlaceDto;
+}
+
+export class AddImageDto {
+  @IsString()
+  @IsNotEmpty()
+  @IsBase64()
+  image: string;
 }
