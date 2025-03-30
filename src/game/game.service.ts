@@ -42,6 +42,15 @@ export class GameService {
     return session;
   }
 
+  async getSessionPlayers(sessionCode: string) {
+    const session = await this.prisma.gameSession.findUnique({
+      where: { code: sessionCode },
+      include: { players: true },
+    });
+    if (!session) throw new Error('Session not found');
+    return session.players;
+  }
+
   async startRound(sessionId: string) {
     const session = await this.prisma.gameSession.findUnique({
       where: { id: sessionId },

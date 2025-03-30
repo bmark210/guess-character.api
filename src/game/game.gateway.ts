@@ -36,13 +36,25 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      client.join(sessionCode);
-      client.emit('session-joined', session);
+      // Get all players in the session
+      const players = await this.gameService.getSessionPlayers(sessionCode);
 
-      // Notify other players in the session
+      // Join the socket room
+      client.join(sessionCode);
+
+      // Emit session joined event with full session data
+      client.emit('session-joined', {
+        ...session,
+        players,
+      });
+
+      // Notify other players in the session about the new player
       this.server.to(sessionCode).emit('player-joined', {
         id: client.id,
-        sessionId: sessionCode,
+        name: 'Anonymous Player', // You might want to get the actual player name
+        avatarUrl:
+          'https://api.dicebear.com/7.x/avataaars/svg?seed=' + client.id,
+        telegramId: parseInt(client.id.split('-')[0], 16),
       });
     } catch (error) {
       client.emit('error', { message: error.message });
