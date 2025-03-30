@@ -10,7 +10,7 @@ import { GameService } from './game.service';
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: '*',
   },
 })
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
