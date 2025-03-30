@@ -9,7 +9,9 @@ export class GameController {
   async createPlayer(
     @Body() body: { name: string; avatarUrl: string; telegramId: number },
   ) {
-    const player = await this.gameService.getPlayer(body.telegramId);
+    const player = await this.gameService.getPlayerByTelegramId(
+      body.telegramId,
+    );
     if (player) {
       return player;
     }

@@ -93,11 +93,19 @@ export class GameService {
     });
   }
 
-  async getPlayer(telegramId: number) {
+  async getPlayerByTelegramId(telegramId: number) {
     if (!telegramId) throw new Error('Telegram ID is required');
 
     return this.prisma.player.findUnique({
       where: { telegramId: telegramId },
+    });
+  }
+
+  async getPlayerById(playerId: string) {
+    if (!playerId) throw new Error('Player ID is required');
+
+    return this.prisma.player.findUnique({
+      where: { id: playerId },
     });
   }
 
