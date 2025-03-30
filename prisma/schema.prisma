@@ -104,8 +104,8 @@ model BaseEntity {
   name        String
   description String
   mention     String
-  chapter     Int          @default(1)
-  verse       Int          @default(1)
+  chapter     Int           @default(1)
+  verse       Int           @default(1)
   image       String
   type        CharacterType
   level       Difficulty
@@ -116,6 +116,7 @@ model BaseEntity {
   foodItem   FoodItem?
   objectItem ObjectItem?
   place      Place?
+  rounds     Round[]
 
   @@map("base_entities")
 }
@@ -165,4 +166,36 @@ model Place {
   placeType PlaceType?
 
   @@map("places")
+}
+
+model GameSession {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  creatorId String
+  createdAt DateTime @default(now())
+
+  players   Player[]
+  rounds    Round[]
+}
+
+model Player {
+  id        String   @id @default(uuid())
+  name      String
+  avatarUrl String
+  telegramId Int    @unique
+
+  sessionId String?
+  session   GameSession? @relation(fields: [sessionId], references: [id])
+  rounds    Round[]
+}
+
+model Round {
+  id          String     @id @default(uuid())
+  sessionId   String
+  playerId    String
+  characterId String
+
+  session     GameSession @relation(fields: [sessionId], references: [id])
+  player      Player      @relation(fields: [playerId], references: [id])
+  character   BaseEntity  @relation(fields: [characterId], references: [id])
 }
