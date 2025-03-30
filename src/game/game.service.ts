@@ -15,31 +15,34 @@ export class GameService {
   }
 
   private generateCode(): string {
-    return Math.random().toString(36).substring(2, 8); // короче и легче вводить
+    return Math.floor(Math.random() * 900 + 100).toString();
   }
 
-  async joinSession(playerId: string, sessionId: string) {
+  async joinSession(playerId: string, sessionCode: string) {
     const session = await this.prisma.gameSession.findUnique({
-      where: { code: sessionId },
+      where: { code: sessionCode },
       include: { players: true },
     });
     if (!session) throw new Error('Session not found');
 
     const player = await this.prisma.player.findUnique({
       where: { id: playerId },
-      include: { session: true },
     });
-    if (player.sessionId && player.sessionId === session.id) {
-      return session;
+
+    if (player.sessionId !== session.id) {
+      await this.prisma.player.update({
+        where: { id: playerId },
+        data: { sessionId: session.id },
+      });
     }
 
-    // If player is in a different session or no session, update their sessionId
-    await this.prisma.player.update({
-      where: { id: playerId },
-      data: { sessionId: session.id },
+    // 🔁 получаем обновлённую сессию с игроками
+    const updatedSession = await this.prisma.gameSession.findUnique({
+      where: { code: sessionCode },
+      include: { players: true },
     });
 
-    return session;
+    return updatedSession;
   }
 
   async getSessionPlayers(sessionCode: string) {
