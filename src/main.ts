@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, Logger } from '@nestjs/common';
-import { BotService } from './bot/bot.service';
+// import { BotService } from './bot/bot.service';
 import * as express from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'fs';
@@ -29,8 +29,8 @@ async function bootstrap() {
       .setTitle('Guess Character API')
       .setDescription('API for the Guess Character game')
       .setVersion('1.0')
-      .addServer('http://localhost:3000', 'Local development server')
-      .addServer('ws://localhost:3000', 'WebSocket server')
+      .addServer('http://localhost:4000', 'Local development server')
+      .addServer('http://localhost:4000', 'WebSocket server')
       .addTag('Game', 'Game management endpoints')
       .addTag('Characters', 'Character management endpoints')
       .addTag('WebSocket', 'Real-time game events')
@@ -97,10 +97,10 @@ async function bootstrap() {
       res.json(document);
     });
 
-    const botService = app.get(BotService);
-    await botService.setupWebhook(expressApp);
+    // const botService = app.get(BotService);
+    // await botService.setupWebhook(expressApp);
 
-    const port = process.env.PORT || 3000;
+    const port = process.env.PORT || 3001;
     await app.listen(port);
     logger.log(`🚀 Server running on http://localhost:${port}`);
     logger.log(

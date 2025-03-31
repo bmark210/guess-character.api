@@ -1,6 +1,20 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { GameService } from './game.service';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiParam,
+} from '@nestjs/swagger';
 
 @ApiTags('Game')
 @Controller()
@@ -21,20 +35,27 @@ export class GameController {
     },
   })
   async createPlayer(
-    @Body() body: { name: string; avatarUrl: string; telegramId: number },
+    @Body()
+    body: {
+      name: string;
+      avatarUrl: string;
+      telegramId: number;
+    },
   ) {
-    const player = await this.gameService.getPlayerByTelegramId(
-      body.telegramId,
-    );
+    const telegramId = Number(body.telegramId);
+    if (isNaN(telegramId)) {
+      throw new HttpException(
+        'Invalid telegramId format',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const player = await this.gameService.getPlayerByTelegramId(telegramId);
     if (player) {
       return player;
     }
 
-    return this.gameService.createPlayer(
-      body.name,
-      body.avatarUrl,
-      body.telegramId,
-    );
+    return this.gameService.createPlayer(body.name, body.avatarUrl, telegramId);
   }
 
   @Post('sessions')
@@ -52,20 +73,36 @@ export class GameController {
     return this.gameService.createSession(body.creatorId);
   }
 
-  @Post('join-session')
+  @Post('sessions/:sessionCode/join')
   @ApiOperation({ summary: 'Join an existing game session' })
+  @ApiParam({
+    name: 'sessionCode',
+    description: 'Code of the game session to join',
+  })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
         playerId: { type: 'string' },
-        sessionId: { type: 'string' },
       },
-      required: ['playerId', 'sessionId'],
+      required: ['playerId'],
     },
   })
-  joinSession(@Body() body: { playerId: string; sessionId: string }) {
-    return this.gameService.joinSession(body.playerId, body.sessionId);
+  @ApiResponse({ status: 200, description: 'Successfully joined the session' })
+  @ApiResponse({ status: 404, description: 'Session not found' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  async joinSession(
+    @Param('sessionCode') sessionCode: string,
+    @Body() body: { playerId: string },
+  ) {
+    try {
+      return await this.gameService.joinSession(body.playerId, sessionCode);
+    } catch (error) {
+      if (error.message === 'Session not found') {
+        throw new HttpException('Session not found', HttpStatus.NOT_FOUND);
+      }
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
   }
 
   @Post('start-round')

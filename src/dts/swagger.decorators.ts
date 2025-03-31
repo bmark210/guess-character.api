@@ -39,4 +39,4 @@ export const ApiObjectUsageProperty = () =>
   ApiEnumProperty(ObjectUsage, 'Usage of the object');
 
 export const ApiPlaceTypeProperty = () =>
-  ApiEnumProperty(PlaceType, 'Type of place'); 
+  ApiEnumProperty(PlaceType, 'Type of place');

@@ -12,7 +12,14 @@ import { CharacterService } from './character.service';
 import { CreateCharacterDto, AddImageDto } from '../dts/create-character.dto';
 import { PaginationDto } from '../dts/pagination.dto';
 import { UpdateCharacterDto } from 'src/dts/update-character.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 
 @ApiTags('Characters')
 @Controller('characters')
@@ -50,7 +57,10 @@ export class CharacterController {
   @Get('names/:book')
   @ApiOperation({ summary: 'Get character names by book' })
   @ApiParam({ name: 'book', description: 'Book name' })
-  @ApiResponse({ status: 200, description: 'Returns character names for the specified book' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns character names for the specified book',
+  })
   getNamesByBook(@Param('book') book: string) {
     return this.characterService.getNamesByBook(book);
   }

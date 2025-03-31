@@ -333,10 +333,20 @@
         ]
       }
     },
-    "/join-session": {
+    "/sessions/{sessionCode}/join": {
       "post": {
         "operationId": "GameController_joinSession",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "sessionCode",
+            "required": true,
+            "in": "path",
+            "description": "Code of the game session to join",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -346,22 +356,24 @@
                 "properties": {
                   "playerId": {
                     "type": "string"
-                  },
-                  "sessionId": {
-                    "type": "string"
                   }
                 },
                 "required": [
-                  "playerId",
-                  "sessionId"
+                  "playerId"
                 ]
               }
             }
           }
         },
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "Successfully joined the session"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "404": {
+            "description": "Session not found"
           }
         },
         "summary": "Join an existing game session",
@@ -483,11 +495,11 @@
   ],
   "servers": [
     {
-      "url": "http://localhost:3000",
+      "url": "http://localhost:4000",
       "description": "Local development server"
     },
     {
-      "url": "ws://localhost:3000",
+      "url": "http://localhost:4000",
       "description": "WebSocket server"
     }
   ],
