@@ -1,0 +1,903 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/characters": {
+      "post": {
+        "operationId": "CharacterController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCharacterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Character created successfully"
+          }
+        },
+        "summary": "Create a new character",
+        "tags": [
+          "Characters"
+        ]
+      },
+      "get": {
+        "operationId": "CharacterController_findAll",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "book",
+            "required": false,
+            "in": "query",
+            "description": "Filter by book name",
+            "schema": {
+              "example": "Genesis",
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "description": "Filter by character type",
+            "schema": {
+              "example": "PERSON",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page number (1-based)",
+            "required": false,
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Number of items per page",
+            "required": false,
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Filter by book name",
+            "required": false,
+            "name": "book",
+            "in": "query",
+            "schema": {
+              "example": "Genesis",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by character type",
+            "required": false,
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "example": "PERSON",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns paginated characters"
+          }
+        },
+        "summary": "Get all characters with pagination",
+        "tags": [
+          "Characters"
+        ]
+      }
+    },
+    "/characters/add-image": {
+      "post": {
+        "operationId": "CharacterController_addImage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddImageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Image uploaded successfully"
+          }
+        },
+        "summary": "Upload an image for a character",
+        "tags": [
+          "Characters"
+        ]
+      }
+    },
+    "/characters/names/{book}": {
+      "get": {
+        "operationId": "CharacterController_getNamesByBook",
+        "parameters": [
+          {
+            "name": "book",
+            "required": true,
+            "in": "path",
+            "description": "Book name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns character names for the specified book"
+          }
+        },
+        "summary": "Get character names by book",
+        "tags": [
+          "Characters"
+        ]
+      }
+    },
+    "/characters/{id}": {
+      "get": {
+        "operationId": "CharacterController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Character ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the character"
+          }
+        },
+        "summary": "Get a character by ID",
+        "tags": [
+          "Characters"
+        ]
+      },
+      "patch": {
+        "operationId": "CharacterController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Character ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCharacterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Character updated successfully"
+          }
+        },
+        "summary": "Update a character",
+        "tags": [
+          "Characters"
+        ]
+      },
+      "delete": {
+        "operationId": "CharacterController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Character ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Character deleted successfully"
+          }
+        },
+        "summary": "Delete a character",
+        "tags": [
+          "Characters"
+        ]
+      }
+    },
+    "/create-player": {
+      "post": {
+        "operationId": "GameController_createPlayer",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "avatarUrl": {
+                    "type": "string"
+                  },
+                  "telegramId": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "name",
+                  "avatarUrl",
+                  "telegramId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create a new player or get existing one",
+        "tags": [
+          "Game"
+        ]
+      }
+    },
+    "/sessions": {
+      "post": {
+        "operationId": "GameController_createSession",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "creatorId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "creatorId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create a new game session",
+        "tags": [
+          "Game"
+        ]
+      }
+    },
+    "/join-session": {
+      "post": {
+        "operationId": "GameController_joinSession",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "playerId": {
+                    "type": "string"
+                  },
+                  "sessionId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "playerId",
+                  "sessionId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Join an existing game session",
+        "tags": [
+          "Game"
+        ]
+      }
+    },
+    "/start-round": {
+      "post": {
+        "operationId": "GameController_startRound",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "sessionId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Start a new round in the game session",
+        "tags": [
+          "Game"
+        ]
+      }
+    },
+    "/end-round": {
+      "post": {
+        "operationId": "GameController_endRound",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "sessionId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "End the current round in the game session",
+        "tags": [
+          "Game"
+        ]
+      }
+    },
+    "/session/{sessionId}": {
+      "get": {
+        "operationId": "GameController_getSession",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the game session"
+          }
+        },
+        "summary": "Get game session by ID",
+        "tags": [
+          "Game"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Guess Character API",
+    "description": "API for the Guess Character game",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "Game",
+      "description": "Game management endpoints"
+    },
+    {
+      "name": "Characters",
+      "description": "Character management endpoints"
+    },
+    {
+      "name": "WebSocket",
+      "description": "Real-time game events"
+    }
+  ],
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development server"
+    },
+    {
+      "url": "ws://localhost:3000",
+      "description": "WebSocket server"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "PersonDto": {
+        "type": "object",
+        "properties": {
+          "traits": {
+            "description": "Character traits",
+            "example": [
+              "brave",
+              "intelligent"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "AUTHORITY",
+              "SPIRITUAL_LEADER",
+              "TEACHER",
+              "SERVANT_CLASS",
+              "LABORER",
+              "HEALER",
+              "MARGINALIZED",
+              "FOREIGNER",
+              "CITIZEN",
+              "PRISONER",
+              "RIGHTEOUS",
+              "SINNER",
+              "SYMBOLIC_ROLE",
+              "UNKNOWN"
+            ],
+            "description": "Social status of the character",
+            "example": "AUTHORITY"
+          }
+        },
+        "required": [
+          "traits",
+          "status"
+        ]
+      },
+      "EntityDto": {
+        "type": "object",
+        "properties": {
+          "entityType": {
+            "type": "string",
+            "enum": [
+              "ANIMAL",
+              "BIRD",
+              "FISH",
+              "INSECT",
+              "PLANT",
+              "ANGELIC_BEING",
+              "MYTHICAL_BEAST",
+              "SUPERNATURAL",
+              "OTHER"
+            ],
+            "description": "Type of the entity",
+            "example": "ANIMAL"
+          }
+        },
+        "required": [
+          "entityType"
+        ]
+      },
+      "FoodItemDto": {
+        "type": "object",
+        "properties": {
+          "foodType": {
+            "type": "string",
+            "enum": [
+              "PLANT_BASED",
+              "ANIMAL_BASED",
+              "COOKED",
+              "RAW",
+              "LIQUID",
+              "RITUAL",
+              "PRESERVED",
+              "COMMON",
+              "LUXURY",
+              "SYMBOLIC",
+              "OTHER"
+            ],
+            "description": "Type of food item",
+            "example": "PLANT_BASED"
+          }
+        },
+        "required": [
+          "foodType"
+        ]
+      },
+      "ObjectItemDto": {
+        "type": "object",
+        "properties": {
+          "material": {
+            "type": "string",
+            "enum": [
+              "ORGANIC",
+              "MINERAL",
+              "METALLIC",
+              "TEXTILE",
+              "PRECIOUS",
+              "LIQUID_BASED",
+              "EARTH_BASED",
+              "UNKNOWN",
+              "OTHER"
+            ],
+            "description": "Material of the object",
+            "example": "ORGANIC"
+          },
+          "usage": {
+            "type": "string",
+            "enum": [
+              "FUNCTIONAL",
+              "REPRESENTATIONAL",
+              "SACRED",
+              "COMMUNICATIVE",
+              "SUPPORTIVE",
+              "AESTHETIC",
+              "UNKNOWN",
+              "OTHER"
+            ],
+            "description": "Usage of the object",
+            "example": "FUNCTIONAL"
+          }
+        },
+        "required": [
+          "material",
+          "usage"
+        ]
+      },
+      "PlaceDto": {
+        "type": "object",
+        "properties": {
+          "placeType": {
+            "type": "string",
+            "enum": [
+              "NATURAL_FEATURE",
+              "SETTLEMENT",
+              "WILDERNESS",
+              "SACRED_PLACE",
+              "REGION",
+              "PATHWAY",
+              "SYMBOLIC_PLACE",
+              "OTHER"
+            ],
+            "description": "Type of place",
+            "example": "NATURAL_FEATURE"
+          }
+        },
+        "required": [
+          "placeType"
+        ]
+      },
+      "CreateCharacterDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the character",
+            "example": "John Doe"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the character",
+            "example": "A brave warrior from the north"
+          },
+          "mention": {
+            "type": "string",
+            "description": "Mention text for the character",
+            "example": "@johndoe"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "PERSON",
+              "ENTITY",
+              "FOOD",
+              "OBJECT",
+              "PLACE"
+            ],
+            "description": "Type of the character",
+            "example": "PERSON"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "EASY",
+              "MEDIUM",
+              "HARD"
+            ],
+            "description": "Difficulty level of the character",
+            "example": "EASY"
+          },
+          "image": {
+            "type": "string",
+            "description": "Base64 encoded image of the character",
+            "example": "data:image/jpeg;base64,/9j/4AAQSkZJRg..."
+          },
+          "chapter": {
+            "type": "number",
+            "description": "Chapter number where the character appears",
+            "example": 1,
+            "minimum": 1
+          },
+          "verse": {
+            "type": "number",
+            "description": "Verse number where the character appears",
+            "example": 1,
+            "minimum": 1
+          },
+          "person": {
+            "description": "Person-specific properties",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonDto"
+              }
+            ]
+          },
+          "entity": {
+            "description": "Entity-specific properties",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityDto"
+              }
+            ]
+          },
+          "foodItem": {
+            "description": "Food item-specific properties",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FoodItemDto"
+              }
+            ]
+          },
+          "objectItem": {
+            "description": "Object item-specific properties",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ObjectItemDto"
+              }
+            ]
+          },
+          "place": {
+            "description": "Place-specific properties",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PlaceDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "mention",
+          "type",
+          "level",
+          "image",
+          "chapter",
+          "verse"
+        ]
+      },
+      "AddImageDto": {
+        "type": "object",
+        "properties": {
+          "image": {
+            "type": "string",
+            "description": "Base64 encoded image",
+            "example": "data:image/jpeg;base64,/9j/4AAQSkZJRg..."
+          }
+        },
+        "required": [
+          "image"
+        ]
+      },
+      "UpdateCharacterDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the character",
+            "example": "John Doe"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the character",
+            "example": "A brave warrior from the north"
+          },
+          "mention": {
+            "type": "string",
+            "description": "Mention text for the character",
+            "example": "@johndoe"
+          },
+          "chapter": {
+            "type": "number",
+            "description": "Chapter number where the character appears",
+            "example": 1,
+            "minimum": 1
+          },
+          "verse": {
+            "type": "number",
+            "description": "Verse number where the character appears",
+            "example": 1,
+            "minimum": 1
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "PERSON",
+              "ENTITY",
+              "FOOD",
+              "OBJECT",
+              "PLACE"
+            ],
+            "description": "Type of the character",
+            "example": "PERSON"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "EASY",
+              "MEDIUM",
+              "HARD"
+            ],
+            "description": "Difficulty level of the character",
+            "example": "EASY"
+          },
+          "image": {
+            "type": "string",
+            "description": "URL of the character image",
+            "example": "https://example.com/character.jpg"
+          },
+          "person": {
+            "description": "Person-specific properties",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonDto"
+              }
+            ]
+          },
+          "entity": {
+            "description": "Entity-specific properties",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityDto"
+              }
+            ]
+          },
+          "foodItem": {
+            "description": "Food item-specific properties",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FoodItemDto"
+              }
+            ]
+          },
+          "objectItem": {
+            "description": "Object item-specific properties",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ObjectItemDto"
+              }
+            ]
+          },
+          "place": {
+            "description": "Place-specific properties",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PlaceDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "mention",
+          "chapter",
+          "verse",
+          "type",
+          "level",
+          "image"
+        ]
+      },
+      "WebSocketEvent": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "enum": [
+              "join_game",
+              "leave_game",
+              "start_round",
+              "end_round",
+              "make_guess",
+              "round_result"
+            ]
+          },
+          "data": {
+            "type": "object",
+            "description": "Event-specific data"
+          }
+        }
+      }
+    }
+  }
+}

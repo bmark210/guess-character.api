@@ -19,13 +19,15 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "update-chapters": "ts-node src/scripts/update-chapters.ts",
-    "update-mentions": "ts-node src/scripts/update-mentions.ts"
+    "update-mentions": "ts-node src/scripts/update-mentions.ts",
+    "swagger:generate": "nest start && exit 0"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.12",
     "@nestjs/core": "^11.0.12",
     "@nestjs/platform-express": "^11.0.12",
     "@nestjs/platform-socket.io": "^11.0.12",
+    "@nestjs/swagger": "^11.1.0",
     "@nestjs/websockets": "^11.0.12",
     "@prisma/client": "^6.5.0",
     "@types/cors": "^2.8.17",
@@ -38,6 +40,7 @@
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
     "sharp": "^0.33.5",
+    "swagger-ui-express": "^5.0.1",
     "telegraf": "^4.16.3"
   },
   "devDependencies": {
