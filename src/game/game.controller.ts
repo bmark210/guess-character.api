@@ -23,7 +23,7 @@ export class GameController {
     );
   }
 
-  @Post('create-session')
+  @Post('sessions')
   createSession(@Body() body: { creatorId: string }) {
     return this.gameService.createSession(body.creatorId);
   }
