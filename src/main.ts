@@ -46,7 +46,14 @@ async function bootstrap() {
       properties: {
         event: {
           type: 'string',
-          enum: ['join_game', 'leave_game', 'start_round', 'end_round', 'make_guess', 'round_result'],
+          enum: [
+            'join_game',
+            'leave_game',
+            'start_round',
+            'end_round',
+            'make_guess',
+            'round_result',
+          ],
         },
         data: {
           type: 'object',
