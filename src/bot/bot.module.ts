@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { BotService } from './services/bot.service';
+import { BotService } from './bot.service';
 @Module({
   providers: [BotService],
   exports: [BotService],

@@ -7,71 +7,78 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { GameService } from './game.service';
+import { Logger } from '@nestjs/common';
 
 @WebSocketGateway({
   cors: {
     origin: '*',
+    credentials: true,
   },
 })
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
+  private logger = new Logger('GameGateway');
 
   constructor(private readonly gameService: GameService) {}
 
   async handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`);
+    this.logger.log(`Client connected: ${client.id}`);
   }
 
   handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`);
+    this.logger.log(`Client disconnected: ${client.id}`);
   }
 
   @SubscribeMessage('join-session')
   async handleJoinSession(
     client: Socket,
-    payload: { sessionCode: string; playerId: string },
+    data: { sessionCode: string; playerId: string },
   ) {
     try {
-      const { sessionCode, playerId } = payload;
-      const session = await this.gameService.getSession(sessionCode);
-      if (!session) {
-        client.emit('error', { message: 'Session not found' });
-        return;
-      }
+      this.logger.log(`Join session request: ${JSON.stringify(data)}`);
+      const session = await this.gameService.joinSession(
+        data.playerId,
+        data.sessionCode,
+      );
 
-      const players = await this.gameService.getSessionPlayers(sessionCode);
-      const player = await this.gameService.getPlayerById(playerId);
+      // Join the socket room
+      await client.join(data.sessionCode);
 
-      // Join room
-      client.join(sessionCode);
+      // Emit to the client that joined
+      client.emit('session-joined', { session });
+      this.logger.log(`Session joined emitted to client ${client.id}`);
 
-      client.emit('session-joined', {
-        ...session,
-        players,
+      // Emit to all other clients in the room
+      client.to(data.sessionCode).emit('player-joined', {
+        id: client.id,
+        sessionCode: data.sessionCode,
       });
-
-      this.server.to(sessionCode).emit('player-joined', player);
+      this.logger.log(`Player joined emitted to room ${data.sessionCode}`);
     } catch (error) {
+      this.logger.error(`Error joining session: ${error.message}`);
       client.emit('error', { message: error.message });
     }
   }
 
   @SubscribeMessage('leave-session')
   handleLeaveSession(client: Socket, sessionCode: string) {
+    this.logger.log(`Client ${client.id} leaving session ${sessionCode}`);
     client.leave(sessionCode);
     this.server.to(sessionCode).emit('player-left', {
       id: client.id,
-      sessionId: sessionCode,
+      sessionCode,
     });
   }
 
   @SubscribeMessage('start-game')
   async handleStartGame(client: Socket, sessionCode: string) {
     try {
+      this.logger.log(`Starting game for session: ${sessionCode}`);
       const round = await this.gameService.startRound(sessionCode);
       this.server.to(sessionCode).emit('game-started', round);
     } catch (error) {
+      this.logger.error(`Error starting game: ${error.message}`);
       client.emit('error', { message: error.message });
     }
   }
