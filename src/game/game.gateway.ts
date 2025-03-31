@@ -42,6 +42,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data.sessionCode,
       );
 
+      // Get player info
+      const player = await this.gameService.getPlayerById(data.playerId);
+      if (!player) {
+        throw new Error('Player not found');
+      }
+
       // Join the socket room
       await client.join(data.sessionCode);
 
@@ -49,10 +55,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.emit('session-joined', { session });
       this.logger.log(`Session joined emitted to client ${client.id}`);
 
-      // Emit to all other clients in the room
+      // Emit to all other clients in the room with full player data
       client.to(data.sessionCode).emit('player-joined', {
-        id: client.id,
-        sessionCode: data.sessionCode,
+        id: player.id,
+        name: player.name,
+        avatarUrl: player.avatarUrl,
+        telegramId: player.telegramId,
       });
       this.logger.log(`Player joined emitted to room ${data.sessionCode}`);
     } catch (error) {
