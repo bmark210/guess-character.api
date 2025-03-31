@@ -44,7 +44,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const updatedSession = await this.gameService.getSession(room);
 
         // Notify all remaining players in the room
-        this.server.to(room).emit('player-disconnected', {
+        this.server.to(room).emit('player_disconnected', {
           id: client.id,
           playerId: player?.id,
           name: player?.name,
@@ -57,7 +57,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         );
 
         // Update room state for all remaining players
-        this.server.to(room).emit('room-updated', {
+        this.server.to(room).emit('room_updated', {
           session: updatedSession,
           message: 'Room state updated after player disconnected',
         });
@@ -75,81 +75,33 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  @SubscribeMessage('join-session')
+  @SubscribeMessage('join_session')
   async handleJoinSession(
     client: Socket,
     data: { sessionCode: string; playerId: string },
   ) {
     try {
-      this.logger.log(
-        `Join session request from client ${client.id}: ${JSON.stringify(data.playerId + ' + ' + data.sessionCode)}`,
-      );
-
-      // Join the session
       const session = await this.gameService.joinSession(
         data.playerId,
         data.sessionCode,
       );
 
-      // Get player info
-      const player = await this.gameService.getPlayerById(data.playerId);
-      if (!player) {
-        throw new Error('Player not found');
-      }
-
-      // Join the socket room
       await client.join(data.sessionCode);
-      this.logger.log(`Client ${client.id} joined room ${data.sessionCode}`);
+      // const player = await this.gameService.getPlayerById(data.playerId);
 
-      // Get all clients in the room
-      const room = this.server.sockets.adapter.rooms.get(data.sessionCode);
-      const clientsInRoom = room ? room.size : 0;
-      this.logger.log(
-        `Number of clients in room ${data.sessionCode}: ${clientsInRoom}`,
-      );
+      // this.server.to(data.sessionCode).emit('session_joined', {
+      //   session,
+      //   message: `${player.name} Successfully joined the session`,
+      // });
 
-      // Emit to the client that joined
-      client.emit('session-joined', {
-        session,
-        message: 'Successfully joined the session',
-      });
-      this.logger.log(`Session joined event emitted to client ${client.id}`);
-
-      // Emit to all other clients in the room with full player data
-      const playerData = {
-        id: player.id,
-        name: player.name,
-        avatarUrl: player.avatarUrl,
-        telegramId: player.telegramId,
-        joinedAt: new Date().toISOString(),
-      };
-
-      // Broadcast to all clients in the room except the sender
-      client.to(data.sessionCode).emit('player-joined', playerData);
-      this.logger.log(
-        `Player joined event broadcasted to room ${data.sessionCode}: ${JSON.stringify(playerData)}`,
-      );
-
-      // Also emit a room update event to all clients
-      const updatedSession = await this.gameService.getSession(
-        data.sessionCode,
-      );
-      // Notify all users in the room about the session update
-      this.server.to(data.sessionCode).emit('session-updated', {
-        session: updatedSession,
+      // const updatedSession = await this.gameService.getSession(
+      //   data.sessionCode,
+      // );
+      this.server.to(data.sessionCode).emit('session_updated', {
+        session: session,
         message: 'Session state has been updated',
         timestamp: new Date().toISOString(),
       });
-      this.logger.log(
-        `Session updated event broadcasted to room ${data.sessionCode}`,
-      );
-      this.server.to(data.sessionCode).emit('room-updated', {
-        session: updatedSession,
-        message: 'Room state updated',
-      });
-      this.logger.log(
-        `Room updated event broadcasted to room ${data.sessionCode}`,
-      );
     } catch (error) {
       this.logger.error(`Error joining session: ${error.message}`);
       client.emit('error', {
@@ -159,44 +111,60 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  @SubscribeMessage('leave-session')
-  async handleLeaveSession(client: Socket, sessionCode: string) {
+  @SubscribeMessage('leave_session')
+  async handleLeaveSession(
+    client: Socket,
+    data: { playerId: string; sessionCode: string },
+  ) {
     try {
-      this.logger.log(`Client ${client.id} leaving session ${sessionCode}`);
+      this.logger.log(
+        `Client ${client.id} leaving session ${data.sessionCode}`,
+      );
 
       // Get player info before leaving
-      const player = await this.gameService.getPlayerById(client.id);
+      const player = await this.gameService.getPlayerById(data.playerId);
+      if (!player) {
+        throw new Error('Player not found');
+      }
+
+      // Remove player from session in database
+      await this.gameService.removePlayerFromSession(data.playerId);
 
       // Leave the socket room
-      client.leave(sessionCode);
-      this.logger.log(`Client ${client.id} left room ${sessionCode}`);
+      client.leave(data.sessionCode);
 
-      // Get updated room state
-      const updatedSession = await this.gameService.getSession(sessionCode);
+      // Get updated session with remaining players
+      const updatedSession = await this.gameService.getSession(
+        data.sessionCode,
+      );
 
       // Notify all remaining players in the room
-      this.server.to(sessionCode).emit('player-left', {
+      this.server.to(data.sessionCode).emit('player_left', {
         id: client.id,
-        playerId: player?.id,
-        name: player?.name,
-        sessionCode,
+        playerId: player.id,
+        name: player.name,
+        sessionCode: data.sessionCode,
         timestamp: new Date().toISOString(),
       });
-      this.logger.log(`Player left event broadcasted to room ${sessionCode}`);
+      this.logger.log(
+        `Player left event broadcasted to room ${data.sessionCode}`,
+      );
 
       // Update room state for all remaining players
-      this.server.to(sessionCode).emit('room-updated', {
+      this.server.to(data.sessionCode).emit('room_updated', {
         session: updatedSession,
         message: 'Room state updated after player left',
       });
-      this.logger.log(`Room updated event broadcasted to room ${sessionCode}`);
-
-      // Get remaining clients count
-      const room = this.server.sockets.adapter.rooms.get(sessionCode);
-      const remainingClients = room ? room.size : 0;
       this.logger.log(
-        `Remaining clients in room ${sessionCode}: ${remainingClients}`,
+        `Room updated event broadcasted to room ${data.sessionCode}`,
       );
+
+      // Also emit session_updated to match client expectations
+      this.server.to(data.sessionCode).emit('session_updated', {
+        session: updatedSession,
+        message: 'Session state has been updated',
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
       this.logger.error(`Error handling leave session: ${error.message}`);
       client.emit('error', {
@@ -206,25 +174,89 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  @SubscribeMessage('start-game')
-  async handleStartGame(client: Socket, sessionCode: string) {
+  // Helper method to broadcast session updates to all connected users
+  private async broadcastSessionUpdate(sessionCode: string, message: string) {
     try {
-      this.logger.log(`Starting game for session: ${sessionCode}`);
-      const round = await this.gameService.startRound(sessionCode);
-      this.server.to(sessionCode).emit('game-started', round);
+      // Get updated session data
+      const updatedSession = await this.gameService.getSession(sessionCode);
+
+      // Get all clients in the room
+      const room = this.server.sockets.adapter.rooms.get(sessionCode);
+      if (!room) {
+        this.logger.warn(`No clients found in room ${sessionCode}`);
+        return;
+      }
+
+      // Broadcast session update to all clients in the room
+      this.server.to(sessionCode).emit('session_updated', {
+        session: updatedSession,
+        message,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Also broadcast room update
+      this.server.to(sessionCode).emit('room_updated', {
+        session: updatedSession,
+        message: 'Room state has been updated',
+      });
+
+      this.logger.log(`Session update broadcasted to room ${sessionCode}`);
     } catch (error) {
-      this.logger.error(`Error starting game: ${error.message}`);
-      client.emit('error', { message: error.message });
+      this.logger.error(`Error broadcasting session update: ${error.message}`);
     }
   }
 
-  @SubscribeMessage('end-round')
-  async handleEndRound(client: Socket, sessionCode: string) {
+  // Method to handle session updates
+  @SubscribeMessage('update_session')
+  async handleSessionUpdate(
+    client: Socket,
+    data: { sessionCode: string; update: any },
+  ) {
     try {
-      const round = await this.gameService.endRound(sessionCode);
-      this.server.to(sessionCode).emit('round-ended', round);
+      // Update the session in the database
+      await this.gameService.updateSession(data.sessionCode, data.update);
+
+      // Broadcast the update to all connected users
+      await this.broadcastSessionUpdate(
+        data.sessionCode,
+        'Session has been updated',
+      );
+
+      // Emit success to the client that initiated the update
+      client.emit('session_update_success', {
+        message: 'Session updated successfully',
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
-      client.emit('error', { message: error.message });
+      this.logger.error(`Error updating session: ${error.message}`);
+      client.emit('error', {
+        message: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  @SubscribeMessage('player_joined')
+  async handlePlayerJoined(
+    client: Socket,
+    data: { sessionCode: string; playerId: string },
+  ) {
+    try {
+      // Get player info
+      const player = await this.gameService.getPlayerById(data.playerId);
+
+      this.server.to(data.sessionCode).emit('player_has_joined', {
+        id: player.id,
+        name: player.name,
+        avatarUrl: player.avatarUrl,
+        telegramId: player.telegramId,
+      });
+    } catch (error) {
+      this.logger.error(`Error handling player joined: ${error.message}`);
+      client.emit('error', {
+        message: error.message,
+        timestamp: new Date().toISOString(),
+      });
     }
   }
 }

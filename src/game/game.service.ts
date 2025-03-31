@@ -117,4 +117,18 @@ export class GameService {
       where: { id: sessionId },
     });
   }
+
+  async updateSession(sessionCode: string, update: any) {
+    return this.prisma.gameSession.update({
+      where: { code: sessionCode },
+      data: update,
+    });
+  }
+
+  async removePlayerFromSession(playerId: string) {
+    return this.prisma.player.update({
+      where: { id: playerId },
+      data: { sessionId: null },
+    });
+  }
 }
