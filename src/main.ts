@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, Logger } from '@nestjs/common';
-// import { BotService } from './bot/bot.service';
+import { BotService } from './bot/bot.service';
 import * as express from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'fs';
@@ -97,8 +97,8 @@ async function bootstrap() {
       res.json(document);
     });
 
-    // const botService = app.get(BotService);
-    // await botService.setupWebhook(expressApp);
+    const botService = app.get(BotService);
+    await botService.setupWebhook(expressApp);
 
     const port = process.env.PORT || 3001;
     await app.listen(port);
