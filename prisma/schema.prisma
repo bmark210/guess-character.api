@@ -182,7 +182,7 @@ model Player {
   id         String @id @default(uuid())
   name       String
   avatarUrl  String
-  telegramId BigInt @unique @db.BigInt
+  telegramId String @unique
 
   sessionId String?
   session   GameSession? @relation(fields: [sessionId], references: [id])

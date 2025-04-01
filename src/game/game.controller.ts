@@ -29,7 +29,7 @@ export class GameController {
       properties: {
         name: { type: 'string' },
         avatarUrl: { type: 'string' },
-        telegramId: { type: 'number' },
+        telegramId: { type: 'string' }, // 👈 поменяли на строку!
       },
       required: ['name', 'avatarUrl', 'telegramId'],
     },
@@ -39,21 +39,21 @@ export class GameController {
     body: {
       name: string;
       avatarUrl: string;
-      telegramId: number;
+      telegramId: string; // 👈 ожидаем строку от клиента
     },
   ) {
-    const telegramId = Number(body.telegramId);
-    if (isNaN(telegramId)) {
+    let telegramId: string;
+    try {
+      telegramId = body.telegramId; // 👈 безопасное преобразование
+    } catch {
       throw new HttpException(
         'Invalid telegramId format',
         HttpStatus.BAD_REQUEST,
       );
     }
 
-    const player = await this.gameService.getPlayerByTelegramId(telegramId);
-    if (player) {
-      return player;
-    }
+    const existing = await this.gameService.getPlayerByTelegramId(telegramId);
+    if (existing) return existing;
 
     return this.gameService.createPlayer(body.name, body.avatarUrl, telegramId);
   }
