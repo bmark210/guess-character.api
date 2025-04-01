@@ -95,44 +95,46 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  // @SubscribeMessage('leave_session')
-  // async handleLeaveSession(
-  //   client: Socket,
-  //   data: { sessionCode: string; playerId: string },
-  // ) {
-  //   try {
-  //     this.logger.log(
-  //       `Client ${client.id} leaving session ${data.sessionCode}`,
-  //     );
+  @SubscribeMessage('leave_session')
+  async handleLeaveSession(
+    client: Socket,
+    data: { sessionCode: string; playerId: string },
+  ) {
+    try {
+      this.logger.log(
+        `Client ${client.id} leaving session ${data.sessionCode}`,
+      );
 
-  //     const player = await this.gameService.getPlayerById(data.playerId);
-  //     if (!player) {
-  //       throw new Error('Player not found');
-  //     }
+      const player = await this.gameService.getPlayerById(data.playerId);
+      if (!player) {
+        throw new Error('Player not found');
+      }
 
-  //     // Remove from DB
-  //     await this.gameService.removePlayerFromSession(data.playerId);
+      // Leave socket room
+      client.leave(data.sessionCode);
 
-  //     // Leave room
-  //     client.leave(data.sessionCode);
+      // Get updated session
+      const updatedSession = await this.gameService.getSession(
+        data.sessionCode,
+      );
 
-  //     // Notify others
-  //     this.server.to(data.sessionCode).emit('player_left', {
-  //       playerId: player.id,
-  //       name: player.name,
-  //     });
+      // Notify others
+      this.server.to(data.sessionCode).emit('player_left', {
+        id: player.id,
+        playerId: data.playerId,
+        name: player.name,
+        sessionCode: data.sessionCode,
+        timestamp: new Date().toISOString(),
+      });
 
-  //     // Send updated session
-  //     const updatedSession = await this.gameService.getSession(
-  //       data.sessionCode,
-  //     );
-  //     this.server.to(data.sessionCode).emit('session_updated', {
-  //       session: updatedSession,
-  //       message: 'Session updated after player left',
-  //     });
-  //   } catch (err) {
-  //     this.logger.error(`Error leaving session: ${err.message}`);
-  //     client.emit('error', { message: err.message });
-  //   }
-  // }
+      // Send updated session to all players
+      this.server.to(data.sessionCode).emit('session_updated', {
+        session: updatedSession,
+        message: 'Session updated after player left',
+      });
+    } catch (err) {
+      this.logger.error(`Error leaving session: ${err.message}`);
+      client.emit('error', { message: err.message });
+    }
+  }
 }

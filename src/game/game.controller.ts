@@ -15,6 +15,7 @@ import {
   ApiBody,
   ApiParam,
 } from '@nestjs/swagger';
+import { CharacterType, Difficulty } from '@prisma/client';
 
 @ApiTags('Game')
 @Controller()
@@ -39,12 +40,12 @@ export class GameController {
     body: {
       name: string;
       avatarUrl: string;
-      telegramId: string; // 👈 ожидаем строку от клиента
+      telegramId: string;
     },
   ) {
     let telegramId: string;
     try {
-      telegramId = body.telegramId; // 👈 безопасное преобразование
+      telegramId = body.telegramId;
     } catch {
       throw new HttpException(
         'Invalid telegramId format',
@@ -69,8 +70,18 @@ export class GameController {
       required: ['creatorId'],
     },
   })
-  createSession(@Body() body: { creatorId: string }) {
-    return this.gameService.createSession(body.creatorId);
+  createSession(
+    @Body()
+    body: {
+      creatorId: string;
+      gameConfig: {
+        difficulty: Difficulty;
+        characterType: CharacterType;
+        mention: string;
+      };
+    },
+  ) {
+    return this.gameService.createSession(body.creatorId, body.gameConfig);
   }
 
   @Post('sessions/:sessionCode/join')

@@ -277,7 +277,7 @@
                     "type": "string"
                   },
                   "telegramId": {
-                    "type": "number"
+                    "type": "string"
                   }
                 },
                 "required": [
