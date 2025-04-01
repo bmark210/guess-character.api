@@ -174,15 +174,15 @@ model GameSession {
   creatorId String
   createdAt DateTime @default(now())
 
-  players   Player[]
-  rounds    Round[]
+  players Player[]
+  rounds  Round[]
 }
 
 model Player {
-  id        String   @id @default(uuid())
-  name      String
-  avatarUrl String
-  telegramId Int    @unique
+  id         String @id @default(uuid())
+  name       String
+  avatarUrl  String
+  telegramId BigInt @unique
 
   sessionId String?
   session   GameSession? @relation(fields: [sessionId], references: [id])
@@ -190,12 +190,12 @@ model Player {
 }
 
 model Round {
-  id          String     @id @default(uuid())
+  id          String @id @default(uuid())
   sessionId   String
   playerId    String
   characterId String
 
-  session     GameSession @relation(fields: [sessionId], references: [id])
-  player      Player      @relation(fields: [playerId], references: [id])
-  character   BaseEntity  @relation(fields: [characterId], references: [id])
+  session   GameSession @relation(fields: [sessionId], references: [id])
+  player    Player      @relation(fields: [playerId], references: [id])
+  character BaseEntity  @relation(fields: [characterId], references: [id])
 }
