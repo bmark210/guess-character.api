@@ -79,71 +79,77 @@ export class GameService {
     return session.players;
   }
 
-  async startRound(sessionId: string) {
-    const session = await this.prisma.gameSession.findUnique({
-      where: { id: sessionId },
-      include: { players: true },
-    });
-    if (!session) throw new Error('Session not found');
-    if (!session.players.length) throw new Error('No players found');
+  // async startRound(sessionId: string) {
+  //   const session = await this.prisma.gameSession.findUnique({
+  //     where: { id: sessionId },
+  //     include: { players: true },
+  //   });
+  //   if (!session) throw new Error('Session not found');
+  //   if (!session.players.length) throw new Error('No players found');
 
-    // Получаем последний раунд для определения следующего игрока
-    const lastRound = await this.prisma.round.findFirst({
-      where: { sessionId },
-    });
+  //   // Update game status to IN_PROGRESS
+  //   await this.prisma.gameSession.update({
+  //     where: { id: sessionId },
+  //     data: { status: 'IN_PROGRESS' },
+  //   });
 
-    // Определяем следующего игрока
-    const currentPlayerIndex = lastRound
-      ? session.players.findIndex((p) => p.id === lastRound.playerId)
-      : -1;
+  //   // Получаем последний раунд для определения следующего игрока
+  //   const lastRound = await this.prisma.round.findFirst({
+  //     where: { sessionId },
+  //   });
 
-    const nextPlayerIndex = (currentPlayerIndex + 1) % session.players.length;
-    const nextPlayer = session.players[nextPlayerIndex];
+  //   // Определяем следующего игрока
+  //   const currentPlayerIndex = lastRound
+  //     ? session.players.findIndex((p) => p.id === lastRound.playerId)
+  //     : -1;
 
-    // Получаем персонажей, подходящих под настройки сессии
-    const characters = await this.prisma.baseEntity.findMany({
-      where: {
-        type: { in: session.characterTypes },
-        level: session.difficulty,
-      },
-    });
-    if (!characters.length) throw new Error('No suitable characters found');
+  //   const nextPlayerIndex = (currentPlayerIndex + 1) % session.players.length;
+  //   const nextPlayer = session.players[nextPlayerIndex];
 
-    // Проверяем, какие персонажи уже были использованы в этой сессии
-    const usedCharacters = await this.prisma.round.findMany({
-      where: { sessionId },
-      select: { characterId: true },
-    });
-    const usedCharacterIds = usedCharacters.map((rc) => rc.characterId);
+  //   // Получаем персонажей, подходящих под настройки сессии
+  //   const characters = await this.prisma.baseEntity.findMany({
+  //     where: {
+  //       type: { in: session.characterTypes },
+  //       level: session.difficulty,
+  //     },
+  //   });
+  //   if (!characters.length) throw new Error('No suitable characters found');
 
-    // Фильтруем персонажей, исключая уже использованные
-    const availableCharacters = characters.filter(
-      (char) => !usedCharacterIds.includes(char.id),
-    );
+  //   // Проверяем, какие персонажи уже были использованы в этой сессии
+  //   const usedCharacters = await this.prisma.round.findMany({
+  //     where: { sessionId },
+  //     select: { characterId: true },
+  //   });
+  //   const usedCharacterIds = usedCharacters.map((rc) => rc.characterId);
 
-    if (!availableCharacters.length) {
-      throw new Error('No available characters left for this session');
-    }
+  //   // Фильтруем персонажей, исключая уже использованные
+  //   const availableCharacters = characters.filter(
+  //     (char) => !usedCharacterIds.includes(char.id),
+  //   );
 
-    // Выбираем случайного персонажа из доступных
-    const randomCharacter =
-      availableCharacters[
-        Math.floor(Math.random() * availableCharacters.length)
-      ];
+  //   if (!availableCharacters.length) {
+  //     throw new Error('No available characters left for this session');
+  //   }
 
-    // Создаем новый раунд
-    return this.prisma.round.create({
-      data: {
-        sessionId,
-        playerId: nextPlayer.id,
-        characterId: randomCharacter.id,
-      },
-      include: {
-        character: true,
-        player: true,
-      },
-    });
-  }
+  //   // Выбираем случайного персонажа из доступных
+  //   const randomCharacter =
+  //     availableCharacters[
+  //       Math.floor(Math.random() * availableCharacters.length)
+  //     ];
+
+  //   // Создаем новый раунд
+  //   return this.prisma.round.create({
+  //     data: {
+  //       sessionId,
+  //       playerId: nextPlayer.id,
+  //       characterId: randomCharacter.id,
+  //     },
+  //     include: {
+  //       character: true,
+  //       player: true,
+  //     },
+  //   });
+  // }
 
   async endRound(sessionId: string) {
     const session = await this.prisma.gameSession.findUnique({
@@ -182,7 +188,7 @@ export class GameService {
     return this.prisma.gameSession.findUnique({
       where: { code: sessionCode },
       include: {
-        players: true, // обязательно!
+        players: true,
       },
     });
   }
@@ -191,6 +197,16 @@ export class GameService {
     return this.prisma.gameSession.update({
       where: { code: sessionCode },
       data: update,
+    });
+  }
+
+  async updateGameStatus(
+    sessionCode: string,
+    status: 'WAITING_FOR_PLAYERS' | 'IN_PROGRESS' | 'FINISHED',
+  ) {
+    return this.prisma.gameSession.update({
+      where: { code: sessionCode },
+      data: { status },
     });
   }
 
@@ -210,5 +226,113 @@ export class GameService {
       where: { id: playerId },
       data: { sessionId: null },
     });
+  }
+
+  async assignCharactersToPlayers(sessionCode: string) {
+    const session = await this.prisma.gameSession.findUnique({
+      where: { code: sessionCode },
+      include: { players: true },
+    });
+
+    if (!session) {
+      throw new Error('Session not found');
+    }
+
+    // Get available characters based on session settings
+    const characters = await this.prisma.baseEntity.findMany({
+      where: {
+        type: { in: session.characterTypes },
+        level: session.difficulty,
+        mention: session.mentionType,
+      },
+      include: {
+        person: true,
+        entity: true,
+        foodItem: true,
+        objectItem: true,
+        place: true,
+      },
+    });
+
+    if (!characters.length) {
+      throw new Error('No suitable characters found');
+    }
+
+    // Shuffle characters array
+    const shuffledCharacters = [...characters].sort(() => Math.random() - 0.5);
+
+    // Assign characters to players
+    const assignments = await Promise.all(
+      session.players.map(async (player, index) => {
+        const character = shuffledCharacters[index % shuffledCharacters.length];
+        return this.prisma.round.create({
+          data: {
+            sessionId: session.id,
+            playerId: player.id,
+            characterId: character.id,
+          },
+          include: {
+            character: {
+              include: {
+                person: true,
+                entity: true,
+                foodItem: true,
+                objectItem: true,
+                place: true,
+              },
+            },
+            player: true,
+          },
+        });
+      }),
+    );
+
+    return assignments;
+  }
+
+  async getPlayerAssignments(sessionCode: string) {
+    const session = await this.prisma.gameSession.findUnique({
+      where: { code: sessionCode },
+      include: { players: true },
+    });
+
+    if (!session) {
+      throw new Error('Session not found');
+    }
+
+    // Get all rounds with their characters and players
+    const rounds = await this.prisma.round.findMany({
+      where: { sessionId: session.id },
+      include: {
+        character: {
+          include: {
+            person: true,
+            entity: true,
+            foodItem: true,
+            objectItem: true,
+            place: true,
+          },
+        },
+        player: true,
+      },
+    });
+
+    // Shuffle the rounds array to randomize assignments
+    const shuffledRounds = [...rounds].sort(() => Math.random() - 0.5);
+
+    // Create an array with length equal to number of players
+    const assignments = new Array(session.players.length).fill(null);
+
+    // Fill the array with shuffled rounds
+    shuffledRounds.forEach((round) => {
+      const playerIndex = session.players.findIndex(
+        (player) => player.id === round.playerId,
+      );
+      if (playerIndex !== -1) {
+        assignments[playerIndex] = round;
+      }
+    });
+
+    return assignments;
   }
 }

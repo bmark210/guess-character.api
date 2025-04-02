@@ -72,6 +72,60 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage('start_game')
+  async handleStartGame(client: Socket, data: { sessionCode: string }) {
+    try {
+      const session = await this.gameService.getSession(data.sessionCode);
+      this.logger.log('assignments');
+
+      if (!session) {
+        throw new Error('Session not found');
+      }
+      this.logger.log('assignments');
+
+      // Update game status to IN_PROGRESS
+      await this.gameService.updateGameStatus(data.sessionCode, 'IN_PROGRESS');
+      this.logger.log('assignments');
+
+      // Assign characters to all players
+      await this.gameService.assignCharactersToPlayers(data.sessionCode);
+
+      // Get updated session
+      const updatedSession = await this.gameService.getSession(
+        data.sessionCode,
+      );
+
+      // Get the current player's ID from the socket
+      const currentPlayerId = client.data.playerId;
+      if (!currentPlayerId) {
+        throw new Error('Player ID not found in socket data');
+      }
+
+      // Get assignments for the current player (excluding their own character)
+      const assignments = await this.gameService.getPlayerAssignments(
+        data.sessionCode,
+      );
+      this.logger.log('assignments');
+
+      // Notify all players in the session
+      this.server.to(data.sessionCode).emit('session_updated', {
+        session: updatedSession,
+        message: 'Game started',
+      });
+
+      // Send character assignments to the current player
+      // client.emit('character_assignments', {
+      //   assignments,
+      // });
+      this.server.to(data.sessionCode).emit('character_assignments', {
+        assignments,
+      });
+    } catch (err) {
+      this.logger.error(`Error starting game: ${err.message}`);
+      client.emit('error', { message: err.message });
+    }
+  }
+
   @SubscribeMessage('leave_session')
   async handleLeaveSession(
     client: Socket,

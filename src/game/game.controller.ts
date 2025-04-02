@@ -116,20 +116,20 @@ export class GameController {
     }
   }
 
-  @Post('start-round')
-  @ApiOperation({ summary: 'Start a new round in the game session' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        sessionId: { type: 'string' },
-      },
-      required: ['sessionId'],
-    },
-  })
-  startRound(@Body() body: { sessionId: string }) {
-    return this.gameService.startRound(body.sessionId);
-  }
+  // @Post('start-round')
+  // @ApiOperation({ summary: 'Start a new round in the game session' })
+  // @ApiBody({
+  //   schema: {
+  //     type: 'object',
+  //     properties: {
+  //       sessionId: { type: 'string' },
+  //     },
+  //     required: ['sessionId'],
+  //   },
+  // })
+  // startRound(@Body() body: { sessionId: string }) {
+  //   return this.gameService.startRound(body.sessionId);
+  // }
 
   @Post('end-round')
   @ApiOperation({ summary: 'End the current round in the game session' })

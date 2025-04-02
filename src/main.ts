@@ -4,8 +4,8 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { BotService } from './bot/bot.service';
 import * as express from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import * as fs from 'fs';
-import * as path from 'path';
+// import * as fs from 'fs';
+// import * as path from 'path';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -24,60 +24,41 @@ async function bootstrap() {
       allowedHeaders: 'Content-Type, Accept, Authorization',
     });
 
-    // Swagger configuration
-    const config = new DocumentBuilder()
-      .setTitle('Guess Character API')
-      .setDescription('API for the Guess Character game')
-      .setVersion('1.0')
-      .addServer('http://localhost:4000', 'Local development server')
-      .addServer('http://localhost:4000', 'WebSocket server')
-      .addTag('Game', 'Game management endpoints')
-      .addTag('Characters', 'Character management endpoints')
-      .addTag('WebSocket', 'Real-time game events')
-      .build();
-
-    const document = SwaggerModule.createDocument(app, config);
-
-    // Add WebSocket documentation
-    document.components = document.components || {};
-    document.components.schemas = document.components.schemas || {};
-    document.components.schemas['WebSocketEvent'] = {
-      type: 'object',
-      properties: {
-        event: {
-          type: 'string',
-          enum: [
-            'join_game',
-            'leave_game',
-            'start_round',
-            'end_round',
-            'make_guess',
-            'round_result',
-          ],
-        },
-        data: {
-          type: 'object',
-          description: 'Event-specific data',
-        },
-      },
-    };
-
     // Save Swagger JSON file
-    const outputPath = path.resolve(process.cwd(), 'swagger.json');
-    fs.writeFileSync(outputPath, JSON.stringify(document, null, 2), {
-      encoding: 'utf8',
-    });
-    logger.log(`📝 Swagger JSON saved to ${outputPath}`);
+    // const outputPath = path.resolve(process.cwd(), 'swagger.json');
+    // fs.writeFileSync(outputPath, JSON.stringify(document, null, 2), {
+    //   encoding: 'utf8',
+    // });
+    // logger.log(`📝 Swagger JSON saved to ${outputPath}`);
 
     // Setup Swagger UI with custom options
+    // Configure Swagger to include all Prisma models
+    const config = new DocumentBuilder()
+      .setTitle('API Documentation')
+      .setDescription('The API description')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .addTag('Characters')
+      .addTag('Game')
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config, {
+      deepScanRoutes: true,
+      operationIdFactory: (controllerKey: string, methodKey: string) =>
+        methodKey,
+    });
+
+    // Setup Swagger UI with enhanced model visibility
     SwaggerModule.setup('api', app, document, {
       swaggerOptions: {
         persistAuthorization: true,
         filter: true,
         displayRequestDuration: true,
         docExpansion: 'none',
-        defaultModelsExpandDepth: -1,
-        defaultModelExpandDepth: 1,
+        defaultModelsExpandDepth: 2, // Show more model details
+        defaultModelExpandDepth: 2,
+        displayOperationId: true,
+        tryItOutEnabled: true,
       },
       customSiteTitle: 'Guess Character API Documentation',
       customCss: '.swagger-ui .topbar { display: none }',

@@ -99,6 +99,11 @@ enum PlaceType {
   OTHER
 }
 
+enum GameStatus {
+  WAITING_FOR_PLAYERS
+  IN_PROGRESS
+  FINISHED
+}
 model BaseEntity {
   id          String        @id @default(uuid())
   name        String
@@ -169,10 +174,11 @@ model Place {
 }
 
 model GameSession {
-  id        String   @id @default(uuid())
-  code      String   @unique
+  id        String     @id @default(uuid())
+  code      String     @unique
   creatorId String
-  createdAt DateTime @default(now())
+  createdAt DateTime   @default(now())
+  status    GameStatus @default(WAITING_FOR_PLAYERS)
 
   // Game settings
   difficulty     Difficulty
