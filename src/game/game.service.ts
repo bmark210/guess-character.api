@@ -7,6 +7,23 @@ import { Difficulty } from '@prisma/client';
 export class GameService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async generateCode(): Promise<string> {
+    let code: string;
+    let isUnique = false;
+
+    while (!isUnique) {
+      code = Math.floor(Math.random() * 900 + 100).toString();
+      const existingSession = await this.prisma.gameSession.findUnique({
+        where: { code },
+      });
+      if (!existingSession) {
+        isUnique = true;
+      }
+    }
+
+    return code;
+  }
+
   async createSession(
     creatorId: string,
     gameConfig: {
@@ -18,16 +35,12 @@ export class GameService {
     return this.prisma.gameSession.create({
       data: {
         creatorId,
-        code: this.generateCode(),
+        code: await this.generateCode(),
         difficulty: gameConfig.difficulty,
         characterTypes: [gameConfig.characterType],
         mentionType: gameConfig.mention,
       },
     });
-  }
-
-  private generateCode(): string {
-    return Math.floor(Math.random() * 900 + 100).toString();
   }
 
   async joinSession(playerId: string, sessionCode: string) {
@@ -165,9 +178,12 @@ export class GameService {
     });
   }
 
-  async getSession(sessionId: string) {
+  async getSession(sessionCode: string) {
     return this.prisma.gameSession.findUnique({
-      where: { id: sessionId },
+      where: { code: sessionCode },
+      include: {
+        players: true, // обязательно!
+      },
     });
   }
 
@@ -179,6 +195,17 @@ export class GameService {
   }
 
   async removePlayerFromSession(playerId: string) {
+    // First, get the player to find their session
+    const player = await this.prisma.player.findUnique({
+      where: { id: playerId },
+      include: { session: true },
+    });
+
+    if (!player) {
+      throw new Error('Player not found');
+    }
+
+    // Update the player to remove their session reference
     return this.prisma.player.update({
       where: { id: playerId },
       data: { sessionId: null },

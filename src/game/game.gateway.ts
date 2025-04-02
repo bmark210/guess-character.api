@@ -29,27 +29,21 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleDisconnect(client: Socket) {
     this.logger.log(`Client disconnected: ${client.id}`);
-    const rooms = Array.from(client.rooms);
 
-    for (const roomId of rooms) {
-      if (roomId === client.id) continue;
+    const sessionCode = client.data.sessionCode;
+    const playerId = client.data.playerId;
 
-      // Attempt to find the player by socket ID or similar logic
-      const player = await this.gameService.getPlayerById(client.id);
+    if (!sessionCode || !playerId) return;
 
-      // Let others know
-      this.server.to(roomId).emit('player_disconnected', {
-        playerId: player?.id,
-        name: player?.name,
-      });
+    // Optionally update your session in DB (e.g., remove the player)
+    await this.gameService.removePlayerFromSession(playerId);
 
-      // Optionally do a session update:
-      const session = await this.gameService.getSession(roomId);
-      this.server.to(roomId).emit('session_updated', {
-        session,
-        message: 'Session updated after disconnect',
-      });
-    }
+    const session = await this.gameService.getSession(sessionCode);
+
+    this.server.to(sessionCode).emit('session_updated', {
+      session,
+      message: `Player ${playerId} disconnected`,
+    });
   }
 
   @SubscribeMessage('join_session')
@@ -58,33 +52,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     data: { sessionCode: string; playerId: string },
   ) {
     try {
-      // Attempt to join in DB
       const session = await this.gameService.joinSession(
         data.playerId,
         data.sessionCode,
       );
 
-      // Join socket room
+      client.data.sessionCode = data.sessionCode;
+      client.data.playerId = data.playerId;
+
       await client.join(data.sessionCode);
 
-      // Find full player info
-      // const player = await this.gameService.getPlayerById(data.playerId);
-
-      // Let the joining client know
-      // client.emit('session_joined', {
-      //   session,
-      //   message: 'Successfully joined session',
-      // });
-
-      // Broadcast to others
-      // this.server.to(data.sessionCode).emit('player_has_joined', {
-      //   id: player.id,
-      //   name: player.name,
-      //   avatarUrl: player.avatarUrl,
-      //   telegramId: player.telegramId,
-      // });
-
-      // Let all players see updated session
       this.server.to(data.sessionCode).emit('session_updated', {
         session,
         message: 'Session state updated',
@@ -105,32 +82,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         `Client ${client.id} leaving session ${data.sessionCode}`,
       );
 
-      const player = await this.gameService.getPlayerById(data.playerId);
-      if (!player) {
-        throw new Error('Player not found');
-      }
+      const sessionCode = client.data.sessionCode;
+      const playerId = client.data.playerId;
 
-      // Leave socket room
-      client.leave(data.sessionCode);
+      if (!sessionCode || !playerId) return;
 
-      // Get updated session
-      const updatedSession = await this.gameService.getSession(
-        data.sessionCode,
-      );
+      await this.gameService.removePlayerFromSession(playerId);
 
-      // Notify others
-      this.server.to(data.sessionCode).emit('player_left', {
-        id: player.id,
-        playerId: data.playerId,
-        name: player.name,
-        sessionCode: data.sessionCode,
-        timestamp: new Date().toISOString(),
-      });
+      const session = await this.gameService.getSession(sessionCode);
 
-      // Send updated session to all players
-      this.server.to(data.sessionCode).emit('session_updated', {
-        session: updatedSession,
-        message: 'Session updated after player left',
+      this.server.to(sessionCode).emit('session_updated', {
+        session,
+        message: `Player ${playerId} disconnected`,
       });
     } catch (err) {
       this.logger.error(`Error leaving session: ${err.message}`);
