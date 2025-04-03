@@ -290,7 +290,7 @@ export class GameService {
     return assignments;
   }
 
-  async getPlayerAssignments(sessionCode: string) {
+  async getPlayersAssignments(sessionCode: string, currentPlayerId: string) {
     const session = await this.prisma.gameSession.findUnique({
       where: { code: sessionCode },
       include: { players: true },
@@ -317,22 +317,55 @@ export class GameService {
       },
     });
 
-    // Shuffle the rounds array to randomize assignments
-    const shuffledRounds = [...rounds].sort(() => Math.random() - 0.5);
+    // Filter out the current player's round
+    const otherPlayersRounds = rounds.filter(
+      (round) => round.playerId !== currentPlayerId,
+    );
 
-    // Create an array with length equal to number of players
-    const assignments = new Array(session.players.length).fill(null);
+    // // Shuffle the remaining rounds
+    // const shuffledRounds = [...otherPlayersRounds].sort(
+    //   () => Math.random() - 0.5,
+    // );
 
-    // Fill the array with shuffled rounds
-    shuffledRounds.forEach((round) => {
-      const playerIndex = session.players.findIndex(
-        (player) => player.id === round.playerId,
-      );
-      if (playerIndex !== -1) {
-        assignments[playerIndex] = round;
-      }
+    return otherPlayersRounds;
+  }
+
+  async getCurrentAssignments(sessionCode: string) {
+    const session = await this.prisma.gameSession.findUnique({
+      where: { code: sessionCode },
+      include: { players: true },
     });
 
-    return assignments;
+    if (!session) {
+      throw new Error('Session not found');
+    }
+
+    const currentAssignments = session.players.map((player) => {
+      const round = this.prisma.round.findFirst({
+        where: { playerId: player.id, sessionId: session.id },
+      });
+
+      return round;
+    });
+
+    return currentAssignments;
   }
+
+  // async generatePlayerAssignmentsForNewPlayer(
+  // sessionCode: string,
+  // playerId: string,
+  // ) {
+  // const session = await this.prisma.gameSession.findUnique({
+  //   where: { code: sessionCode },
+  //   include: { players: true },
+  // });
+  // if (!session) {
+  //   throw new Error('Session not found');
+  // }
+  // const currentAssignments = await this.getCurrentAssignments(sessionCode);
+  // const newPlayerAssignments = currentAssignments.filter(
+  //   (assignment) => assignment.playerId !== playerId,
+  // );
+  // return newPlayerAssignments;
+  // }
 }
