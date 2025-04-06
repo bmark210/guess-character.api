@@ -16,6 +16,30 @@ enum CharacterType {
   PLACE
 }
 
+enum Book {
+  GENESIS
+  EXODUS
+  NUMBERS
+  JOSHUA
+  JUDGES
+  RUTH
+  ONE_SAMUEL
+  TWO_SAMUEL
+  ONE_KINGS
+  TWO_KINGS
+  ONE_CHRONICLES
+  TWO_CHRONICLES
+  EZRA
+  NEHEMIAH
+  ESTHER
+  DANIEL
+  MATTHEW
+  MARK
+  LUKE
+  JOHN
+  ACTS
+}
+
 enum Difficulty {
   EASY
   MEDIUM
@@ -104,11 +128,12 @@ enum GameStatus {
   IN_PROGRESS
   FINISHED
 }
+
 model BaseEntity {
   id          String        @id @default(uuid())
   name        String
   description String
-  mention     String
+  book        Book
   chapter     Int           @default(1)
   verse       Int           @default(1)
   image       String
@@ -183,7 +208,7 @@ model GameSession {
   // Game settings
   difficulty     Difficulty
   characterTypes CharacterType[]
-  mentionType    String
+  books          Book[]
 
   players Player[]
   rounds  Round[]

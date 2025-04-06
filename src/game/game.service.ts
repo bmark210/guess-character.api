@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
-import { CharacterType } from '@prisma/client';
+import { Book, CharacterType } from '@prisma/client';
 import { Difficulty } from '@prisma/client';
 
 @Injectable()
@@ -28,19 +28,27 @@ export class GameService {
     creatorId: string,
     gameConfig: {
       difficulty: Difficulty;
-      characterType: CharacterType;
-      mention: string;
+      characters: CharacterType[];
+      books: Book[];
     },
   ) {
-    return this.prisma.gameSession.create({
-      data: {
-        creatorId,
-        code: await this.generateCode(),
-        difficulty: gameConfig.difficulty,
-        characterTypes: [gameConfig.characterType],
-        mentionType: gameConfig.mention,
-      },
-    });
+    try {
+      const code = await this.generateCode();
+
+      return this.prisma.gameSession.create({
+        data: {
+          creatorId,
+          code,
+          difficulty: gameConfig.difficulty,
+          characterTypes: gameConfig.characters,
+          books: gameConfig.books,
+          status: 'WAITING_FOR_PLAYERS',
+        },
+      });
+    } catch (error) {
+      console.error('Error creating session:', error);
+      throw error;
+    }
   }
 
   async joinSession(playerId: string, sessionCode: string) {
@@ -243,7 +251,7 @@ export class GameService {
       where: {
         type: { in: session.characterTypes },
         level: session.difficulty,
-        mention: session.mentionType,
+        book: { in: session.books },
       },
       include: {
         person: true,

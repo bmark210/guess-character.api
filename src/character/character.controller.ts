@@ -20,6 +20,7 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
+import { Book } from '@prisma/client';
 
 @ApiTags('Characters')
 @Controller('characters')
@@ -61,7 +62,7 @@ export class CharacterController {
     status: 200,
     description: 'Returns character names for the specified book',
   })
-  getNamesByBook(@Param('book') book: string) {
+  getNamesByBook(@Param('book') book: Book) {
     return this.characterService.getNamesByBook(book);
   }
 

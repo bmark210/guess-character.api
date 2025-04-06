@@ -7,6 +7,7 @@ import {
   Material,
   ObjectUsage,
   PlaceType,
+  Book,
 } from '@prisma/client';
 import {
   IsInt,
@@ -103,9 +104,10 @@ export class CreateCharacterDto {
     description: 'Mention text for the character',
     example: '@johndoe',
   })
-  @IsString()
+  @IsArray()
+  @IsEnum(Book)
   @IsNotEmpty()
-  mention: string;
+  book: Book;
 
   @ApiCharacterTypeProperty()
   @IsEnum(CharacterType)

@@ -15,7 +15,7 @@ import {
   ApiBody,
   ApiParam,
 } from '@nestjs/swagger';
-import { CharacterType, Difficulty } from '@prisma/client';
+import { Book, CharacterType, Difficulty } from '@prisma/client';
 
 @ApiTags('Game')
 @Controller()
@@ -30,7 +30,7 @@ export class GameController {
       properties: {
         name: { type: 'string' },
         avatarUrl: { type: 'string' },
-        telegramId: { type: 'string' }, // 👈 поменяли на строку!
+        telegramId: { type: 'string' },
       },
       required: ['name', 'avatarUrl', 'telegramId'],
     },
@@ -76,8 +76,8 @@ export class GameController {
       creatorId: string;
       gameConfig: {
         difficulty: Difficulty;
-        characterType: CharacterType;
-        mention: string;
+        characters: CharacterType[];
+        books: Book[];
       };
     },
   ) {

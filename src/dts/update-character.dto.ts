@@ -18,6 +18,7 @@ import {
   EntityType,
   FoodType,
   Material,
+  Book,
 } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 import {
@@ -100,8 +101,10 @@ export class UpdateCharacterDto {
     description: 'Mention text for the character',
     example: '@johndoe',
   })
-  @IsString()
-  mention: string;
+  @IsArray()
+  @IsEnum(Book)
+  @IsNotEmpty()
+  book: Book;
 
   @ApiProperty({
     description: 'Chapter number where the character appears',

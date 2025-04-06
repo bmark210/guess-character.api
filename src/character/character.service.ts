@@ -2,7 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { CreateCharacterDto } from '../dts/create-character.dto';
 import { PaginationDto } from '../dts/pagination.dto';
-import { Prisma, CharacterType } from '@prisma/client';
+import { Prisma, CharacterType, Book } from '@prisma/client';
 import { UpdateCharacterDto } from 'src/dts/update-character.dto';
 import { put } from '@vercel/blob';
 import * as sharp from 'sharp';
@@ -11,14 +11,14 @@ import * as sharp from 'sharp';
 export class CharacterService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getNamesByBook(book: string) {
+  async getNamesByBook(book: Book) {
     return this.prisma.baseEntity
       .findMany({
         select: {
           name: true,
         },
         where: {
-          mention: book,
+          book: book,
         },
       })
       .then((items) => items.map((item) => item.name));
@@ -48,7 +48,7 @@ export class CharacterService {
         data: {
           name: data.name,
           description: data.description,
-          mention: 'Genesis',
+          book: data.book,
           chapter: data.chapter,
           verse: data.verse,
           image: data.image,
@@ -124,7 +124,7 @@ export class CharacterService {
 
     const transformedData = data.map((item) => ({
       ...item,
-      formattedMention: `${item.mention} ${item.chapter}:${item.verse}`,
+      formattedMention: `${item.book} ${item.chapter}:${item.verse}`,
     }));
 
     return {
@@ -176,7 +176,7 @@ export class CharacterService {
           data: {
             name: data.name,
             description: data.description,
-            mention: data.mention,
+            book: data.book,
             chapter: data.chapter,
             verse: data.verse,
             type: data.type,
