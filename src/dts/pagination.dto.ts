@@ -31,7 +31,7 @@ export class PaginationDto {
 
   @ApiProperty({
     description: 'Filter by book name',
-    example: 'Genesis',
+    example: 'GENESIS',
     required: false,
   })
   @IsOptional()

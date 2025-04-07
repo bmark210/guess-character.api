@@ -87,7 +87,7 @@ export class CharacterService {
 
     // Фильтрация по упоминанию книги
     if (paginationDto.book) {
-      whereClause.mention = paginationDto.book;
+      whereClause.book = paginationDto.book;
     }
 
     // Фильтрация по типу (если указан)

@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
-import { Book, CharacterType } from '@prisma/client';
-import { Difficulty } from '@prisma/client';
+import { GameConfig } from 'src/dts/game-config.dto';
 
 @Injectable()
 export class GameService {
@@ -24,23 +23,36 @@ export class GameService {
     return code;
   }
 
-  async createSession(
-    creatorId: string,
-    gameConfig: {
-      difficulty: Difficulty;
-      characters: CharacterType[];
-      books: Book[];
-    },
-  ) {
+  async createSession(creatorId: string, gameConfig: GameConfig) {
     try {
       const code = await this.generateCode();
+
+      if (!creatorId) {
+        throw new Error('Creator ID is required');
+      }
+
+      if (!gameConfig) {
+        throw new Error('Game configuration is required');
+      }
+
+      if (!gameConfig.difficulty) {
+        throw new Error('Difficulty is required');
+      }
+
+      if (!gameConfig.characterTypes) {
+        throw new Error('Character types are required');
+      }
+
+      if (!gameConfig.books) {
+        throw new Error('Books are required');
+      }
 
       return this.prisma.gameSession.create({
         data: {
           creatorId,
           code,
           difficulty: gameConfig.difficulty,
-          characterTypes: gameConfig.characters,
+          characterTypes: gameConfig.characterTypes,
           books: gameConfig.books,
           status: 'WAITING_FOR_PLAYERS',
         },
@@ -246,7 +258,6 @@ export class GameService {
       throw new Error('Session not found');
     }
 
-    // Get available characters based on session settings
     const characters = await this.prisma.baseEntity.findMany({
       where: {
         type: { in: session.characterTypes },

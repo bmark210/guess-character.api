@@ -104,7 +104,6 @@ export class CreateCharacterDto {
     description: 'Mention text for the character',
     example: '@johndoe',
   })
-  @IsArray()
   @IsEnum(Book)
   @IsNotEmpty()
   book: Book;

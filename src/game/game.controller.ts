@@ -22,7 +22,7 @@ import { Book, CharacterType, Difficulty } from '@prisma/client';
 export class GameController {
   constructor(private readonly gameService: GameService) {}
 
-  @Post('create-player')
+  @Post('player')
   @ApiOperation({ summary: 'Create a new player or get existing one' })
   @ApiBody({
     schema: {
@@ -35,7 +35,7 @@ export class GameController {
       required: ['name', 'avatarUrl', 'telegramId'],
     },
   })
-  async createPlayer(
+  async getPlayer(
     @Body()
     body: {
       name: string;
@@ -76,7 +76,7 @@ export class GameController {
       creatorId: string;
       gameConfig: {
         difficulty: Difficulty;
-        characters: CharacterType[];
+        characterTypes: CharacterType[];
         books: Book[];
       };
     },
