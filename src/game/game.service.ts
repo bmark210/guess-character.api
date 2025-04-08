@@ -39,11 +39,11 @@ export class GameService {
         throw new Error('Difficulty is required');
       }
 
-      if (!gameConfig.characterTypes) {
+      if (!gameConfig.characterTypes.length) {
         throw new Error('Character types are required');
       }
 
-      if (!gameConfig.books) {
+      if (!gameConfig.books.length) {
         throw new Error('Books are required');
       }
 
@@ -337,9 +337,28 @@ export class GameService {
     });
 
     // Filter out the current player's round
-    const otherPlayersRounds = rounds.filter(
-      (round) => round.playerId !== currentPlayerId,
-    );
+    const otherPlayersRounds = rounds.map((round) => {
+      if (round.playerId === currentPlayerId) {
+        return {
+          player: {
+            id: round.player.id,
+            name: round.player.name,
+            avatarUrl: round.player.avatarUrl,
+            telegramId: round.player.telegramId,
+            sessionId: round.player.sessionId,
+          },
+          character: {
+            id: round.character.id,
+            book: round.character.book,
+            type: round.character.type,
+          },
+        };
+      }
+
+      return {
+        ...round,
+      };
+    });
 
     // // Shuffle the remaining rounds
     // const shuffledRounds = [...otherPlayersRounds].sort(
