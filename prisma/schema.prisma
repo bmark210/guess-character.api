@@ -141,12 +141,13 @@ model BaseEntity {
   level       Difficulty
 
   // One-to-one relations with child models
-  person     Person?
-  entity     Entity?
-  foodItem   FoodItem?
-  objectItem ObjectItem?
-  place      Place?
-  rounds     Round[]
+  person      Person?
+  entity      Entity?
+  foodItem    FoodItem?
+  objectItem  ObjectItem?
+  place       Place?
+  rounds      Round[]
+  assignments Assignment[]
 
   @@map("base_entities")
 }
@@ -210,8 +211,12 @@ model GameSession {
   characterTypes CharacterType[]
   books          Book[]
 
-  players Player[]
-  rounds  Round[]
+  // Game state
+  winners String[] @default([])
+
+  players     Player[]
+  rounds      Round[]
+  assignments Assignment[]
 }
 
 model Player {
@@ -220,18 +225,38 @@ model Player {
   avatarUrl  String
   telegramId String @unique
 
-  sessionId String?
-  session   GameSession? @relation(fields: [sessionId], references: [id])
-  rounds    Round[]
+  sessionId   String?
+  session     GameSession? @relation(fields: [sessionId], references: [id])
+  rounds      Round[]
+  assignments Assignment[]
+
+  @@map("players")
 }
 
 model Round {
-  id          String @id @default(uuid())
+  id          String  @id @default(uuid())
   sessionId   String
   playerId    String
   characterId String
+  tries       Int     @default(0)
+  isWinner    Boolean @default(false)
 
   session   GameSession @relation(fields: [sessionId], references: [id])
   player    Player      @relation(fields: [playerId], references: [id])
   character BaseEntity  @relation(fields: [characterId], references: [id])
+}
+
+model Assignment {
+  id          String  @id @default(uuid())
+  sessionId   String
+  playerId    String
+  characterId String
+  tries       Int     @default(0)
+  isWinner    Boolean @default(false)
+
+  character BaseEntity  @relation(fields: [characterId], references: [id])
+  session   GameSession @relation(fields: [sessionId], references: [id])
+  player    Player      @relation(fields: [playerId], references: [id])
+
+  @@map("assignments")
 }

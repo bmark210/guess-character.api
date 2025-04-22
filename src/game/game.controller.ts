@@ -152,4 +152,27 @@ export class GameController {
   getSession(@Param('sessionId') sessionId: string) {
     return this.gameService.getSession(sessionId);
   }
+
+  @Post('take-guess')
+  @ApiOperation({ summary: 'Take a guess in the game session' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        sessionCode: { type: 'string' },
+        playerId: { type: 'string' },
+        guess: { type: 'string' },
+      },
+      required: ['sessionCode', 'playerId', 'guess'],
+    },
+  })
+  takeGuess(
+    @Body() body: { sessionCode: string; playerId: string; guess: string },
+  ) {
+    return this.gameService.takeGuess(
+      body.sessionCode,
+      body.playerId,
+      body.guess,
+    );
+  }
 }

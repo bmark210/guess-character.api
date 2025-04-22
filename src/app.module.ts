@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BotModule } from './bot/bot.module';
 import { CharacterModule } from './character/character.module';
-import { PrismaModule } from './core/prisma.module';
+import { PrismaModule } from './prisma/prisma.module';
 import { GameModule } from './game/game.module';
 
 @Module({

@@ -36,30 +36,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!sessionCode || !playerId) return;
 
     // Optionally update your session in DB (e.g., remove the player)
-    await this.gameService.removePlayerFromSession(playerId);
+    // await this.gameService.removePlayerFromSession(playerId);
 
-    const session = await this.gameService.getSession(sessionCode);
+    // const session = await this.gameService.getSession(sessionCode, playerId);
 
-    this.server.to(sessionCode).emit('session_updated', {
-      session,
-      message: `Player ${playerId} disconnected`,
-    });
+    // this.server.to(sessionCode).emit('session_updated', {
+    //   session,
+    //   message: `Player ${playerId} disconnected`,
+    // });
   }
-
-  // @SubscribeMessage('get_players_assignments')
-  // async handleGetPlayersAssignments(
-  //   client: Socket,
-  //   data: { sessionCode: string },
-  // ) {
-  //   const assignments = await this.gameService.getPlayersAssignments(
-  //     data.sessionCode,
-  //     client.data.playerId,
-  //   );
-
-  //   client.emit('players_assignments', {
-  //     assignments,
-  //   });
-  // }
 
   @SubscribeMessage('join_session')
   async handleJoinSession(
@@ -67,45 +52,56 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     data: { sessionCode: string; playerId: string },
   ) {
     try {
-      const session = await this.gameService.joinSession(
-        data.playerId,
-        data.sessionCode,
-      );
+      // await this.gameService.joinSession(data.playerId, data.sessionCode);
 
       client.data.sessionCode = data.sessionCode;
       client.data.playerId = data.playerId;
 
       await client.join(data.sessionCode);
 
-      if (session.status === 'IN_PROGRESS') {
+      const fullSession = await this.gameService.getSession(data.sessionCode);
+
+      if (fullSession.status === 'IN_PROGRESS') {
         const sockets = await this.server.in(data.sessionCode).fetchSockets();
 
         // todo: this is a hack to get the assignments to the new player
-        for (const player of session.players) {
-          const assignments = await this.gameService.getPlayersAssignments(
+        for (const player of fullSession.players) {
+          const session = await this.gameService.getSession(
             data.sessionCode,
             player.id,
           );
+
+          // const assignments = await this.gameService.getPlayersAssignments(
+          //   data.sessionCode,
+          //   player.id,
+          // );
 
           // Find the socket for this player
           const playerSocket = sockets.find(
             (socket) => socket.data.playerId === player.id,
           );
+          console.log('playerSocket', player.name);
+
+          playerSocket.emit('session_updated', {
+            session,
+          });
 
           if (playerSocket) {
-            playerSocket.emit('character_assignments', {
-              assignments,
-            });
+            // playerSocket.emit('character_assignments', {
+            //   assignments,
+            // });
           } else {
             this.logger.warn(`Socket not found for player ${player.id}`);
           }
         }
       }
 
-      this.server.to(data.sessionCode).emit('session_updated', {
-        session,
-        message: 'Session state updated',
-      });
+      if (fullSession.status === 'WAITING_FOR_PLAYERS') {
+        this.server.to(data.sessionCode).emit('session_updated', {
+          session: fullSession,
+          message: 'Waiting for players',
+        });
+      }
     } catch (err) {
       this.logger.error(`Error joining session: ${err.message}`);
       client.emit('error', { message: err.message });
@@ -132,28 +128,28 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       // Get all sockets in the session room
-      const sockets = await this.server.in(data.sessionCode).fetchSockets();
+      // const sockets = await this.server.in(data.sessionCode).fetchSockets();
 
       // Send assignments to each player in the session
-      for (const player of session.players) {
-        const assignments = await this.gameService.getPlayersAssignments(
-          data.sessionCode,
-          player.id,
-        );
+      // for (const assignment of session.assignments) {
+      // const assignments = await this.gameService.getPlayersAssignments(
+      //   data.sessionCode,
+      //   assignment.playerId,
+      // );
 
-        // Find the socket for this player
-        const playerSocket = sockets.find(
-          (socket) => socket.data.playerId === player.id,
-        );
+      // // Find the socket for this player
+      // const playerSocket = sockets.find(
+      //   (socket) => socket.data.playerId === assignment.playerId,
+      // );
 
-        if (playerSocket) {
-          playerSocket.emit('character_assignments', {
-            assignments,
-          });
-        } else {
-          this.logger.warn(`Socket not found for player ${player.id}`);
-        }
-      }
+      //   if (playerSocket) {
+      //     playerSocket.emit('character_assignments', {
+      //       session,
+      //     });
+      //   } else {
+      //     this.logger.warn(`Socket not found for player`);
+      //   }
+      // }
 
       // Notify all players in the session
       this.server.to(data.sessionCode).emit('session_updated', {
@@ -175,23 +171,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.logger.log(
         `Client ${client.id} leaving session ${data.sessionCode}`,
       );
-
-      const sessionCode = client.data.sessionCode;
-      const playerId = client.data.playerId;
-
-      if (!sessionCode || !playerId) return;
-
-      await this.gameService.removePlayerFromSession(playerId);
-
-      const session = await this.gameService.getSession(sessionCode);
-
-      this.server.to(sessionCode).emit('session_updated', {
-        session,
-        message: `Player ${playerId} disconnected`,
-      });
+      //   const sessionCode = client.data.sessionCode;
+      //   const playerId = client.data.playerId;
+      //   if (!sessionCode || !playerId) return;
+      //   await this.gameService.removePlayerFromSession(playerId);
+      //   const session = await this.gameService.getSession(sessionCode);
+      //   this.server.to(sessionCode).emit('session_updated', {
+      //     session,
+      //     message: `Player ${playerId} disconnected`,
+      //   });
     } catch (err) {
-      this.logger.error(`Error leaving session: ${err.message}`);
-      client.emit('error', { message: err.message });
+      //   this.logger.error(`Error leaving session: ${err.message}`);
+      //   client.emit('error', { message: err.message });
     }
   }
 }

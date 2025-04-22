@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CharacterModule } from '../character/character.module';
-import { PrismaModule } from '../core/prisma.module';
+import { PrismaModule } from '../prisma/prisma.module';
 import { GameController } from './game.controller';
 import { GameService } from './game.service';
 import { GameGateway } from './game.gateway';

@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { PrismaService } from '../core/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateCharacterDto } from '../dts/create-character.dto';
 import { PaginationDto } from '../dts/pagination.dto';
 import { Prisma, CharacterType, Book } from '@prisma/client';
