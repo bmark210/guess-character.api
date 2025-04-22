@@ -80,16 +80,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
           const playerSocket = sockets.find(
             (socket) => socket.data.playerId === player.id,
           );
-          console.log('playerSocket', player.name);
-
-          playerSocket.emit('session_updated', {
-            session,
-          });
-
           if (playerSocket) {
-            // playerSocket.emit('character_assignments', {
-            //   assignments,
-            // });
+            playerSocket?.emit('session_updated', {
+              session,
+            });
           } else {
             this.logger.warn(`Socket not found for player ${player.id}`);
           }
