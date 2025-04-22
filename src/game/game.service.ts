@@ -85,7 +85,13 @@ export class GameService {
     });
 
     // 🔁 получаем обновлённую сессию с игроками
-    return await this.getSession(sessionCode);
+    return await this.prisma.gameSession.findUnique({
+      where: { code: sessionCode },
+      include: {
+        players: true,
+        // assignments: { include: { character: true, player: true } },
+      },
+    });
 
     // return this.getSession(sessionCode, playerId);
   }
