@@ -71,11 +71,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
             player.id,
           );
 
-          // const assignments = await this.gameService.getPlayersAssignments(
-          //   data.sessionCode,
-          //   player.id,
-          // );
-
           // Find the socket for this player
           const playerSocket = sockets.find(
             (socket) => socket.data.playerId === player.id,

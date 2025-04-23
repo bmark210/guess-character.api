@@ -77,12 +77,14 @@ export class GameService {
       });
     }
 
-    await this.prisma.gameSession.update({
-      where: { id: session.id },
-      data: {
-        players: { connect: { id: playerId } },
-      },
-    });
+    if (session.status === 'WAITING_FOR_PLAYERS') {
+      await this.prisma.gameSession.update({
+        where: { id: session.id },
+        data: {
+          players: { connect: { id: playerId } },
+        },
+      });
+    }
 
     // 🔁 получаем обновлённую сессию с игроками
     return await this.prisma.gameSession.findUnique({
@@ -504,11 +506,7 @@ export class GameService {
       });
     }
 
-    return {
-      isCorrect,
-      character: assignment.character,
-      tries: assignment.tries + 1,
-    };
+    return this.getSession(sessionCode);
   }
 
   // async generatePlayerAssignmentsForNewPlayer(
