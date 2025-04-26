@@ -6,6 +6,7 @@ import {
   Post,
   HttpException,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { GameService } from './game.service';
 import {
@@ -15,7 +16,7 @@ import {
   ApiBody,
   ApiParam,
 } from '@nestjs/swagger';
-import { Book, CharacterType, Difficulty } from '@prisma/client';
+import { Book, CharacterType, Difficulty, HintLevel } from '@prisma/client';
 
 @ApiTags('Game')
 @Controller()
@@ -174,5 +175,23 @@ export class GameController {
       body.playerId,
       body.guess,
     );
+  }
+
+  @Get('hints/:characterId')
+  @ApiOperation({ summary: 'Get hints for a character' })
+  @ApiParam({ name: 'characterId', description: 'ID of the character' })
+  getHints(
+    @Param('characterId') characterId: string,
+    @Query('hintLevel') hintLevel: HintLevel,
+    @Query('assignmentId') assignmentId: string,
+  ) {
+    return this.gameService.getHints(characterId, hintLevel, assignmentId);
+  }
+
+  @Get('has-related-character/:characterId')
+  @ApiOperation({ summary: 'Check if a character has a related character' })
+  @ApiParam({ name: 'characterId', description: 'ID of the character' })
+  hasRelatedCharacter(@Param('characterId') characterId: string) {
+    return this.gameService.hasRelatedCharacter(characterId);
   }
 }

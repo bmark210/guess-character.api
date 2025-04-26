@@ -1,18 +1,27 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GameConfig } from 'src/dts/game-config.dto';
 import { isGuessCloseEnough } from 'src/utils/is-guess-close';
+import { CharacterType, HintLevel } from '@prisma/client';
+import { calculatePlusRating } from 'src/utils/calcPlusReiting';
+import { AwardsService } from 'src/awards/awards.service';
+import { GameGateway } from './game.gateway';
 
 @Injectable()
 export class GameService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly awardsService: AwardsService,
+    @Inject(forwardRef(() => GameGateway))
+    private readonly gameGateway: GameGateway,
+  ) {}
 
   private async generateCode(): Promise<string> {
     let code: string;
     let isUnique = false;
 
     while (!isUnique) {
-      code = Math.floor(Math.random() * 900 + 100).toString();
+      code = Math.floor(Math.random() * 9000 + 1000).toString();
       const existingSession = await this.prisma.gameSession.findUnique({
         where: { code },
       });
@@ -76,7 +85,6 @@ export class GameService {
         data: { sessionId: session.id },
       });
     }
-
     if (session.status === 'WAITING_FOR_PLAYERS') {
       await this.prisma.gameSession.update({
         where: { id: session.id },
@@ -87,15 +95,15 @@ export class GameService {
     }
 
     // 🔁 получаем обновлённую сессию с игроками
-    return await this.prisma.gameSession.findUnique({
-      where: { code: sessionCode },
-      include: {
-        players: true,
-        // assignments: { include: { character: true, player: true } },
-      },
-    });
+    // return await this.prisma.gameSession.findUnique({
+    //   where: { code: sessionCode },
+    //   include: {
+    //     players: true,
+    //     // assignments: { include: { character: true, player: true } },
+    //   },
+    // });
 
-    // return this.getSession(sessionCode, playerId);
+    return this.getSession(sessionCode, playerId);
   }
 
   async getSessionPlayers(sessionCode: string) {
@@ -113,7 +121,7 @@ export class GameService {
     });
     if (!session) throw new Error('Session not found');
 
-    return this.prisma.round.findFirst({
+    return this.prisma.assignment.findFirst({
       where: { sessionId },
     });
   }
@@ -148,7 +156,11 @@ export class GameService {
         players: true,
         assignments: {
           include: {
-            player: true,
+            player: {
+              include: {
+                award: true,
+              },
+            },
             character: {
               include: {
                 person: true,
@@ -165,23 +177,18 @@ export class GameService {
 
     if (!raw) throw new Error('Session not found');
 
-    //no playerId ⇒ return everything
-    // if (!currentPlayerId) {
-    //   console.log('is currentPlayerId', currentPlayerId);
-    //   return raw;
-    // }
-
-    // B) mask out _other_ players’ character payloads
+    // B) mask out _other_ players' character payloads
     const assignments = raw.assignments.map((a) => {
       const {
         id,
         sessionId,
         playerId,
         characterId,
-        tries,
+        guess_tries,
         isWinner,
         player,
         character,
+        hints,
       } = a;
 
       // expose full `character` only to its owner; everyone else just gets an { id }
@@ -190,9 +197,10 @@ export class GameService {
         sessionId,
         playerId,
         characterId,
-        tries,
+        guess_tries,
         isWinner,
         player,
+        hints,
         character:
           playerId === currentPlayerId
             ? {
@@ -319,6 +327,16 @@ export class GameService {
       throw new Error('Session not found');
     }
 
+    // Verify all players exist
+    const playerIds = session.players.map((player) => player.id);
+    const existingPlayers = await this.prisma.player.findMany({
+      where: { id: { in: playerIds } },
+    });
+
+    if (existingPlayers.length !== playerIds.length) {
+      throw new Error('Some players do not exist in the database');
+    }
+
     // 2. Pick all BaseEntity records matching the session's filters
     const characters = await this.prisma.baseEntity.findMany({
       where: {
@@ -386,8 +404,8 @@ export class GameService {
       throw new Error('Session not found');
     }
 
-    // Get all rounds with their characters and players
-    const rounds = await this.prisma.round.findMany({
+    // Get all assignments with their characters and players
+    const assignments = await this.prisma.assignment.findMany({
       where: { sessionId: session.id },
       include: {
         character: {
@@ -403,30 +421,30 @@ export class GameService {
       },
     });
 
-    // Filter out the current player's round
-    const otherPlayersRounds = rounds
-      .map((round) => {
-        if (round.playerId === currentPlayerId) {
+    // Filter out the current player's assignment
+    const otherPlayersAssignments = assignments
+      .map((assignment) => {
+        if (assignment.playerId === currentPlayerId) {
           return {
             player: {
-              id: round.player.id,
-              name: round.player.name,
-              avatarUrl: round.player.avatarUrl,
-              telegramId: round.player.telegramId,
-              sessionId: round.player.sessionId,
-              isWinner: round.isWinner,
-              tries: round.tries,
+              id: assignment.player.id,
+              name: assignment.player.name,
+              avatarUrl: assignment.player.avatarUrl,
+              telegramId: assignment.player.telegramId,
+              sessionId: assignment.player.sessionId,
+              isWinner: assignment.isWinner,
+              guess_tries: assignment.guess_tries,
             },
             character: {
-              id: round.character.id,
-              book: round.character.book,
-              type: round.character.type,
+              id: assignment.character.id,
+              book: assignment.character.book,
+              type: assignment.character.type,
             },
           };
         }
 
         return {
-          ...round,
+          ...assignment,
         };
       })
       .sort((a, b) => {
@@ -435,12 +453,7 @@ export class GameService {
         return 0;
       });
 
-    // // Shuffle the remaining rounds
-    // const shuffledRounds = [...otherPlayersRounds].sort(
-    //   () => Math.random() - 0.5,
-    // );
-
-    return otherPlayersRounds;
+    return otherPlayersAssignments;
   }
 
   async getCurrentAssignments(sessionCode: string) {
@@ -454,11 +467,11 @@ export class GameService {
     }
 
     const currentAssignments = session.players.map((player) => {
-      const round = this.prisma.round.findFirst({
+      const assignment = this.prisma.assignment.findFirst({
         where: { playerId: player.id, sessionId: session.id },
       });
 
-      return round;
+      return assignment;
     });
 
     return currentAssignments;
@@ -492,7 +505,7 @@ export class GameService {
     // Update the number of tries
     await this.prisma.assignment.update({
       where: { id: assignment.id },
-      data: { tries: assignment.tries + 1 },
+      data: { guess_tries: assignment.guess_tries + 1 },
     });
 
     // Check if the guess is correct
@@ -504,9 +517,197 @@ export class GameService {
         where: { id: assignment.id },
         data: { isWinner: true },
       });
+
+      const currentPlayer = await this.prisma.player.findUnique({
+        where: { id: playerId },
+      });
+
+      const updatedPlayer = await this.prisma.player.update({
+        where: { id: playerId },
+        data: {
+          rating:
+            currentPlayer.rating +
+            calculatePlusRating(
+              session.difficulty,
+              assignment.hints as unknown as HintLevel[],
+            ),
+        },
+      });
+      console.log(updatedPlayer.rating, 'updatedPlayer.rating');
+
+      const award = await this.awardsService.getAwardByRating(
+        updatedPlayer.rating,
+      );
+
+      if (!award) {
+        throw new Error('No award found for the current rating');
+      }
+
+      await this.prisma.player.update({
+        where: { id: playerId },
+        data: {
+          rating:
+            currentPlayer.rating +
+            calculatePlusRating(
+              session.difficulty,
+              assignment.hints as unknown as HintLevel[],
+            ),
+          awardId: award.id,
+        },
+      });
     }
 
-    return this.getSession(sessionCode);
+    const updatedSession = await this.getSession(sessionCode);
+    this.gameGateway.server.to(sessionCode).emit('session_updated', {
+      session: updatedSession,
+    });
+
+    return updatedSession;
+  }
+
+  async getHints(
+    characterId: string,
+    hintLevel: HintLevel,
+    assignmentId: string,
+  ) {
+    // 1) fetch and guard
+    const assignment = await this.prisma.assignment.findUnique({
+      where: { id: assignmentId },
+    });
+    if (!assignment) {
+      throw new Error('Assignment not found');
+    }
+    if (assignment.characterId !== characterId) {
+      throw new Error('Assignment does not match character');
+    }
+
+    // 2) load the character
+    const character = await this.prisma.baseEntity.findUnique({
+      where: { id: characterId },
+      include: {
+        person: true,
+        entity: true,
+        foodItem: true,
+        objectItem: true,
+        place: true,
+      },
+    });
+    if (!character) {
+      throw new Error('Character not found');
+    }
+
+    // 3) if this hint is new, persist it once
+    if (!assignment.hints.includes(hintLevel)) {
+      await this.prisma.assignment.update({
+        where: { id: assignmentId },
+        data: { hints: { push: hintLevel } },
+      });
+    }
+
+    // 4) switch on level
+    switch (hintLevel) {
+      case HintLevel.ONE:
+        // front-end expects { book, chapter, verse }
+        return {
+          book: character.book,
+          chapter: character.chapter,
+          verse: character.verse,
+        };
+
+      case HintLevel.TWO: {
+        // front-end's Description interface is
+        // { type: string; status: string; trait: string[]; material?: string; usage?: string }
+        const base = {
+          type: character.type,
+          status: '',
+          trait: [] as string[],
+        };
+
+        if (character.type === CharacterType.PERSON) {
+          return {
+            ...base,
+            status: character.person.status,
+            trait: character.person.traits,
+          };
+        }
+        if (character.type === CharacterType.OBJECT) {
+          return {
+            ...base,
+            material: character.objectItem.material,
+            usage: character.objectItem.usage,
+          };
+        }
+        if (character.type === CharacterType.FOOD) {
+          return {
+            ...base,
+            // no `trait` or `status` on food, so leave them empty
+            // but you could also push e.g. trait: [character.foodItem.foodType]
+          };
+        }
+        if (character.type === CharacterType.ENTITY) {
+          return {
+            ...base,
+            // again, defaulting material/usage off
+            // optionally you could expose entity.entityType here
+          };
+        }
+        if (character.type === CharacterType.PLACE) {
+          return {
+            ...base,
+            // same as above
+          };
+        }
+
+        // fallback
+        return base;
+      }
+
+      case HintLevel.THREE:
+        // front-end expects a Character-like object (with name, description, etc.)
+        if (!character.relatedCharacterId) {
+          return {};
+        }
+        return (
+          (await this.prisma.baseEntity.findUnique({
+            where: { id: character.relatedCharacterId },
+          })) || {}
+        );
+
+      case HintLevel.FOUR:
+        // front-end expects a plain string
+        return { description: character.description };
+
+      default:
+        throw new Error(`Unknown hint level: ${hintLevel}`);
+    }
+  }
+
+  async hasRelatedCharacter(characterId: string) {
+    const character = await this.prisma.baseEntity
+      .findUnique({
+        where: { id: characterId },
+      })
+      .catch(() => null);
+    return character?.relatedCharacterId !== null;
+  }
+
+  async getUserAssegnment(sessionCode: string, playerId: string) {
+    const assignment = await this.prisma.assignment.findFirst({
+      where: {
+        playerId,
+        sessionId: sessionCode,
+      },
+      include: {
+        character: true,
+        player: {
+          include: {
+            award: true,
+          },
+        },
+      },
+    });
+
+    return assignment;
   }
 
   // async generatePlayerAssignmentsForNewPlayer(

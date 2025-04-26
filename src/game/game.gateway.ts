@@ -7,7 +7,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { GameService } from './game.service';
-import { Logger } from '@nestjs/common';
+import { Logger, Inject, forwardRef } from '@nestjs/common';
 
 @WebSocketGateway({
   cors: {
@@ -21,7 +21,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private logger = new Logger('GameGateway');
 
-  constructor(private readonly gameService: GameService) {}
+  constructor(
+    @Inject(forwardRef(() => GameService))
+    private readonly gameService: GameService,
+  ) {}
 
   async handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
@@ -95,6 +98,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.logger.error(`Error joining session: ${err.message}`);
       client.emit('error', { message: err.message });
     }
+  }
+
+  @SubscribeMessage('update_game')
+  async handleUpdateGame(data: { sessionCode: string }) {
+    const session = await this.gameService.getSession(data.sessionCode);
+    this.server.to(data.sessionCode).emit('session_updated', {
+      session,
+    });
   }
 
   @SubscribeMessage('start_game')

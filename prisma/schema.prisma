@@ -129,16 +129,24 @@ enum GameStatus {
   FINISHED
 }
 
+enum HintLevel {
+  ONE
+  TWO
+  THREE
+  FOUR
+}
+
 model BaseEntity {
-  id          String        @id @default(uuid())
-  name        String
-  description String
-  book        Book
-  chapter     Int           @default(1)
-  verse       Int           @default(1)
-  image       String
-  type        CharacterType
-  level       Difficulty
+  id                 String        @id @default(uuid())
+  name               String
+  description        String
+  book               Book
+  chapter            Int           @default(1)
+  verse              Int           @default(1)
+  image              String
+  type               CharacterType
+  level              Difficulty
+  relatedCharacterId String?
 
   // One-to-one relations with child models
   person      Person?
@@ -146,7 +154,6 @@ model BaseEntity {
   foodItem    FoodItem?
   objectItem  ObjectItem?
   place       Place?
-  rounds      Round[]
   assignments Assignment[]
 
   @@map("base_entities")
@@ -156,7 +163,7 @@ model Person {
   baseId String     @id
   base   BaseEntity @relation(fields: [baseId], references: [id], onDelete: Cascade)
 
-  traits String[]      @default([])
+  traits String[]
   status SocialStatus?
 
   @@map("people")
@@ -207,7 +214,7 @@ model GameSession {
   status    GameStatus @default(WAITING_FOR_PLAYERS)
 
   // Game settings
-  difficulty     Difficulty
+  difficulty     Difficulty      @default(EASY)
   characterTypes CharacterType[]
   books          Book[]
 
@@ -215,7 +222,6 @@ model GameSession {
   winners String[] @default([])
 
   players     Player[]
-  rounds      Round[]
   assignments Assignment[]
 }
 
@@ -227,36 +233,37 @@ model Player {
 
   sessionId   String?
   session     GameSession? @relation(fields: [sessionId], references: [id])
-  rounds      Round[]
   assignments Assignment[]
+  rating      Int          @default(0)
+  award       Award?       @relation(fields: [awardId], references: [id])
+  awardId     String?
 
   @@map("players")
 }
 
-model Round {
-  id          String  @id @default(uuid())
-  sessionId   String
-  playerId    String
-  characterId String
-  tries       Int     @default(0)
-  isWinner    Boolean @default(false)
-
-  session   GameSession @relation(fields: [sessionId], references: [id])
-  player    Player      @relation(fields: [playerId], references: [id])
-  character BaseEntity  @relation(fields: [characterId], references: [id])
-}
-
 model Assignment {
-  id          String  @id @default(uuid())
+  id          String      @id @default(uuid())
   sessionId   String
   playerId    String
   characterId String
-  tries       Int     @default(0)
-  isWinner    Boolean @default(false)
+  guess_tries Int         @default(0)
+  isWinner    Boolean     @default(false)
+  hints       HintLevel[] @default([])
 
   character BaseEntity  @relation(fields: [characterId], references: [id])
   session   GameSession @relation(fields: [sessionId], references: [id])
   player    Player      @relation(fields: [playerId], references: [id])
 
   @@map("assignments")
+}
+
+model Award {
+  id          String   @id @default(uuid())
+  name        String
+  image       String
+  raiting     Int
+  color       String
+  Player      Player[]
+
+  @@map("awards")
 }
