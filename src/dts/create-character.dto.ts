@@ -8,6 +8,7 @@ import {
   ObjectUsage,
   PlaceType,
   Book,
+  Size,
 } from '@prisma/client';
 import {
   IsInt,
@@ -31,6 +32,7 @@ import {
   ApiMaterialProperty,
   ApiObjectUsageProperty,
   ApiPlaceTypeProperty,
+  ApiSizeProperty,
 } from './swagger.decorators';
 
 export class PersonDto {
@@ -67,13 +69,18 @@ export class FoodItemDto {
 export class ObjectItemDto {
   @ApiMaterialProperty()
   @IsEnum(Material)
-  @IsNotEmpty()
-  material: Material;
+  @IsOptional()
+  material?: Material;
 
   @ApiObjectUsageProperty()
   @IsEnum(ObjectUsage)
-  @IsNotEmpty()
-  usage: ObjectUsage;
+  @IsOptional()
+  usage?: ObjectUsage;
+
+  @ApiSizeProperty()
+  @IsEnum(Size)
+  @IsOptional()
+  size?: Size;
 }
 
 export class PlaceDto {
@@ -91,6 +98,20 @@ export class CreateCharacterDto {
   @IsString()
   @IsNotEmpty()
   name: string;
+
+  @ApiProperty({
+    description: 'English name of the character',
+    example: 'John Doe',
+  })
+  @IsString()
+  @IsNotEmpty()
+  nameEn: string;
+
+  @ApiProperty({
+    description: 'Related character ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  relatedCharacterId: string;
 
   @ApiProperty({
     description: 'Description of the character',
@@ -122,10 +143,7 @@ export class CreateCharacterDto {
     description: 'Base64 encoded image of the character',
     example: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...',
   })
-  @IsString()
-  @IsNotEmpty()
   image: string;
-
   @ApiProperty({
     description: 'Chapter number where the character appears',
     example: 1,

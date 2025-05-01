@@ -1,11 +1,9 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCharacterDto } from '../dts/create-character.dto';
 import { PaginationDto } from '../dts/pagination.dto';
 import { Prisma, CharacterType, Book } from '@prisma/client';
 import { UpdateCharacterDto } from 'src/dts/update-character.dto';
-import { put } from '@vercel/blob';
-import * as sharp from 'sharp';
 
 @Injectable()
 export class CharacterService {
@@ -50,8 +48,10 @@ export class CharacterService {
           description: data.description,
           book: data.book,
           chapter: data.chapter,
-          verse: data.verse,
+          relatedCharacterId: data.relatedCharacterId,
+          nameEn: data.nameEn,
           image: data.image,
+          verse: data.verse,
           type: data.type,
           level: data.level,
         },
@@ -178,10 +178,11 @@ export class CharacterService {
             description: data.description,
             book: data.book,
             chapter: data.chapter,
+            relatedCharacterId: data.relatedCharacterId,
+            nameEn: data.nameEn,
             verse: data.verse,
             type: data.type,
             level: data.level,
-            image: data.image,
           },
         });
 
@@ -241,7 +242,7 @@ export class CharacterService {
   private async createChildRecord(
     tx: Prisma.TransactionClient,
     baseId: string,
-    data: CreateCharacterDto,
+    data: UpdateCharacterDto,
   ) {
     switch (data.type) {
       case CharacterType.PERSON:
@@ -299,7 +300,7 @@ export class CharacterService {
   private async updateChildRecord(
     tx: Prisma.TransactionClient,
     baseId: string,
-    data: CreateCharacterDto,
+    data: UpdateCharacterDto,
   ) {
     // 1) Identify which type is already stored (if any).
     const existing = await tx.baseEntity.findUnique({
@@ -391,27 +392,27 @@ export class CharacterService {
     }
   }
 
-  async addImage(image: string) {
-    try {
-      if (!image) {
-        throw new Error('Image data is missing');
-      }
+  // async addImage(image: string) {
+  //   try {
+  //     if (!image) {
+  //       throw new Error('Image data is missing');
+  //     }
 
-      // Convert base64 to Buffer
-      const buffer = Buffer.from(image, 'base64');
+  //     // Convert base64 to Buffer
+  //     const buffer = Buffer.from(image, 'base64');
 
-      // Convert to WebP using sharp
-      const webpImage = await sharp(buffer).webp().toBuffer();
+  //     // Convert to WebP using sharp
+  //     const webpImage = await sharp(buffer).webp().toBuffer();
 
-      // Upload to Vercel Blob (ensure you have properly configured your project)
-      const { url } = await put(`characters/${Date.now()}.webp`, webpImage, {
-        access: 'public',
-      });
+  //     // Upload to Vercel Blob (ensure you have properly configured your project)
+  //     const { url } = await put(`characters/${Date.now()}.webp`, webpImage, {
+  //       access: 'public',
+  //     });
 
-      return { url };
-    } catch (error) {
-      console.error('❌ Error in add-image:', error);
-      throw new InternalServerErrorException('Image processing failed');
-    }
-  }
+  //     return { url };
+  //   } catch (error) {
+  //     console.error('❌ Error in add-image:', error);
+  //     throw new InternalServerErrorException('Image processing failed');
+  //   }
+  // }
 }

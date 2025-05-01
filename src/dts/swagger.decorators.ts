@@ -8,6 +8,7 @@ import {
   Material,
   ObjectUsage,
   PlaceType,
+  Size,
 } from '@prisma/client';
 
 export const ApiEnumProperty = (enumType: any, description?: string) =>
@@ -37,6 +38,9 @@ export const ApiMaterialProperty = () =>
 
 export const ApiObjectUsageProperty = () =>
   ApiEnumProperty(ObjectUsage, 'Usage of the object');
+
+export const ApiSizeProperty = () =>
+  ApiEnumProperty(Size, 'Size of the object');
 
 export const ApiPlaceTypeProperty = () =>
   ApiEnumProperty(PlaceType, 'Type of place');

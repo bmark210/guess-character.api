@@ -9,8 +9,6 @@ export class AwardsService {
     return this.prisma.award.create({
       data: {
         ...award,
-        raiting: award.raiting,
-        color: award.color,
       },
     });
   }

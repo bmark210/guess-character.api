@@ -19,6 +19,7 @@ import {
   FoodType,
   Material,
   Book,
+  Size,
 } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 import {
@@ -66,19 +67,27 @@ class FoodItemDto {
 class ObjectItemDto {
   @ApiMaterialProperty()
   @IsEnum(Material)
-  @IsNotEmpty()
-  material: Material;
+  @IsOptional()
+  material?: Material;
 
   @ApiObjectUsageProperty()
   @IsEnum(ObjectUsage)
-  @IsNotEmpty()
-  usage: ObjectUsage;
+  @IsOptional()
+  usage?: ObjectUsage;
+
+  @ApiProperty({
+    description: 'Size of the object',
+    example: 'SMALL',
+  })
+  @IsEnum(Size)
+  @IsOptional()
+  size?: Size;
 }
 
 class PlaceDto {
   @ApiPlaceTypeProperty()
   @IsEnum(PlaceType)
-  @IsNotEmpty()
+  @IsOptional()
   placeType: PlaceType;
 }
 
@@ -96,6 +105,28 @@ export class UpdateCharacterDto {
   })
   @IsString()
   description: string;
+
+  @ApiProperty({
+    description: 'English name of the character',
+    example: 'John Doe',
+  })
+  @IsString()
+  nameEn: string;
+
+  @ApiProperty({
+    description: 'Related character ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @IsString()
+  relatedCharacterId: string;
+
+  @ApiProperty({
+    description: 'Size of the character',
+    example: 'SMALL',
+  })
+  @IsEnum(Size)
+  @IsOptional()
+  size?: Size;
 
   @ApiProperty({
     description: 'Mention text for the character',

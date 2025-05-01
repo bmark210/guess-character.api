@@ -1,13 +1,133 @@
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
-// =========== Enums ===========
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_ORIGIN_URL")
+}
+
+model BaseEntity {
+  id                 String        @id @default(uuid())
+  name               String
+  nameEn             String?
+  numberType         NumberType    @default(SINGULAR)
+  description        String
+  chapter            Int           @default(1)
+  verse              Int           @default(1)
+  image              String?
+  type               CharacterType
+  level              Difficulty
+  book               Book
+  relatedCharacterId String?
+  assignments        Assignment[]
+  entity             Entity?
+  foodItem           FoodItem?
+  objectItem         ObjectItem?
+  person             Person?
+  place              Place?
+
+  @@map("base_entities")
+}
+
+model Person {
+  baseId String        @id
+  traits String[]
+  status SocialStatus?
+  base   BaseEntity    @relation(fields: [baseId], references: [id], onDelete: Cascade)
+
+  @@map("people")
+}
+
+model Entity {
+  baseId     String      @id
+  entityType EntityType?
+  base       BaseEntity  @relation(fields: [baseId], references: [id], onDelete: Cascade)
+
+  @@map("entities")
+}
+
+model FoodItem {
+  baseId   String     @id
+  foodType FoodType?
+  base     BaseEntity @relation(fields: [baseId], references: [id], onDelete: Cascade)
+
+  @@map("food_items")
+}
+
+model ObjectItem {
+  baseId   String       @id
+  material Material?
+  usage    ObjectUsage?
+  size     Size?
+  base     BaseEntity   @relation(fields: [baseId], references: [id], onDelete: Cascade)
+
+  @@map("object_items")
+}
+
+model Place {
+  baseId    String     @id
+  placeType PlaceType?
+  base      BaseEntity @relation(fields: [baseId], references: [id], onDelete: Cascade)
+
+  @@map("places")
+}
+
+model GameSession {
+  id             String          @id @default(uuid())
+  code           String          @unique
+  creatorId      String
+  createdAt      DateTime        @default(now())
+  status         GameStatus      @default(WAITING_FOR_PLAYERS)
+  difficulty     Difficulty      @default(EASY)
+  characterTypes CharacterType[]
+  books          Book[]
+  winners        String[]        @default([])
+  assignments    Assignment[]
+  players        Player[]
+}
+
+model Player {
+  id          String       @id @default(uuid())
+  name        String
+  avatarUrl   String
+  telegramId  String       @unique
+  sessionId   String?
+  rating      Int          @default(0)
+  awardId     String?
+  assignments Assignment[]
+  award       Award?       @relation(fields: [awardId], references: [id])
+  session     GameSession? @relation(fields: [sessionId], references: [id])
+
+  @@map("players")
+}
+
+model Assignment {
+  id          String      @id @default(uuid())
+  sessionId   String
+  playerId    String
+  characterId String
+  guess_tries Int         @default(0)
+  isWinner    Boolean     @default(false)
+  hints       HintLevel[] @default([])
+  character   BaseEntity  @relation(fields: [characterId], references: [id])
+  player      Player      @relation(fields: [playerId], references: [id])
+  session     GameSession @relation(fields: [sessionId], references: [id])
+
+  @@map("assignments")
+}
+
+model Award {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  raiting     Int
+  color       String
+  Player      Player[]
+
+  @@map("awards")
+}
+
 enum CharacterType {
   PERSON
   ENTITY
@@ -112,6 +232,13 @@ enum ObjectUsage {
   OTHER
 }
 
+enum Size {
+  SMALL
+  MEDIUM
+  LARGE
+  HUGE
+}
+
 enum PlaceType {
   NATURAL_FEATURE
   SETTLEMENT
@@ -136,134 +263,7 @@ enum HintLevel {
   FOUR
 }
 
-model BaseEntity {
-  id                 String        @id @default(uuid())
-  name               String
-  description        String
-  book               Book
-  chapter            Int           @default(1)
-  verse              Int           @default(1)
-  image              String
-  type               CharacterType
-  level              Difficulty
-  relatedCharacterId String?
-
-  // One-to-one relations with child models
-  person      Person?
-  entity      Entity?
-  foodItem    FoodItem?
-  objectItem  ObjectItem?
-  place       Place?
-  assignments Assignment[]
-
-  @@map("base_entities")
-}
-
-model Person {
-  baseId String     @id
-  base   BaseEntity @relation(fields: [baseId], references: [id], onDelete: Cascade)
-
-  traits String[]
-  status SocialStatus?
-
-  @@map("people")
-}
-
-model Entity {
-  baseId String     @id
-  base   BaseEntity @relation(fields: [baseId], references: [id], onDelete: Cascade)
-
-  entityType EntityType?
-
-  @@map("entities")
-}
-
-model FoodItem {
-  baseId String     @id
-  base   BaseEntity @relation(fields: [baseId], references: [id], onDelete: Cascade)
-
-  foodType FoodType?
-
-  @@map("food_items")
-}
-
-model ObjectItem {
-  baseId String     @id
-  base   BaseEntity @relation(fields: [baseId], references: [id], onDelete: Cascade)
-
-  material Material?
-  usage    ObjectUsage?
-
-  @@map("object_items")
-}
-
-model Place {
-  baseId String     @id
-  base   BaseEntity @relation(fields: [baseId], references: [id], onDelete: Cascade)
-
-  placeType PlaceType?
-
-  @@map("places")
-}
-
-model GameSession {
-  id        String     @id @default(uuid())
-  code      String     @unique
-  creatorId String
-  createdAt DateTime   @default(now())
-  status    GameStatus @default(WAITING_FOR_PLAYERS)
-
-  // Game settings
-  difficulty     Difficulty      @default(EASY)
-  characterTypes CharacterType[]
-  books          Book[]
-
-  // Game state
-  winners String[] @default([])
-
-  players     Player[]
-  assignments Assignment[]
-}
-
-model Player {
-  id         String @id @default(uuid())
-  name       String
-  avatarUrl  String
-  telegramId String @unique
-
-  sessionId   String?
-  session     GameSession? @relation(fields: [sessionId], references: [id])
-  assignments Assignment[]
-  rating      Int          @default(0)
-  award       Award?       @relation(fields: [awardId], references: [id])
-  awardId     String?
-
-  @@map("players")
-}
-
-model Assignment {
-  id          String      @id @default(uuid())
-  sessionId   String
-  playerId    String
-  characterId String
-  guess_tries Int         @default(0)
-  isWinner    Boolean     @default(false)
-  hints       HintLevel[] @default([])
-
-  character BaseEntity  @relation(fields: [characterId], references: [id])
-  session   GameSession @relation(fields: [sessionId], references: [id])
-  player    Player      @relation(fields: [playerId], references: [id])
-
-  @@map("assignments")
-}
-
-model Award {
-  id          String   @id @default(uuid())
-  name        String
-  image       String
-  raiting     Int
-  color       String
-  Player      Player[]
-
-  @@map("awards")
+enum NumberType {
+  SINGULAR
+  PLURAL
 }

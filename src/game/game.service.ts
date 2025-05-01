@@ -127,9 +127,11 @@ export class GameService {
   }
 
   async createPlayer(name: string, avatarUrl: string, telegramId: string) {
-    return this.prisma.player.create({
+    const player = await this.prisma.player.create({
       data: { name, avatarUrl, telegramId },
     });
+
+    return player;
   }
 
   async getPlayerByTelegramId(telegramId: string) {
@@ -137,6 +139,9 @@ export class GameService {
 
     return this.prisma.player.findUnique({
       where: { telegramId: telegramId },
+      include: {
+        award: true,
+      },
     });
   }
 

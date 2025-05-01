@@ -9,7 +9,7 @@ import {
   Patch,
 } from '@nestjs/common';
 import { CharacterService } from './character.service';
-import { CreateCharacterDto, AddImageDto } from '../dts/create-character.dto';
+import { CreateCharacterDto } from '../dts/create-character.dto';
 import { PaginationDto } from '../dts/pagination.dto';
 import { UpdateCharacterDto } from 'src/dts/update-character.dto';
 import {
@@ -39,13 +39,13 @@ export class CharacterController {
    * Endpoint for uploading an image to Vercel Blob storage.
    * Expects a JSON body with { "image": "<base64 string>" }.
    */
-  @Post('add-image')
-  @ApiOperation({ summary: 'Upload an image for a character' })
-  @ApiBody({ type: AddImageDto })
-  @ApiResponse({ status: 201, description: 'Image uploaded successfully' })
-  addImage(@Body() addImageDto: AddImageDto) {
-    return this.characterService.addImage(addImageDto.image);
-  }
+  // @Post('add-image')
+  // @ApiOperation({ summary: 'Upload an image for a character' })
+  // @ApiBody({ type: AddImageDto })
+  // @ApiResponse({ status: 201, description: 'Image uploaded successfully' })
+  // addImage(@Body() addImageDto: AddImageDto) {
+  //   return this.characterService.addImage(addImageDto.image);
+  // }
 
   @Get()
   @ApiOperation({ summary: 'Get all characters with pagination' })
