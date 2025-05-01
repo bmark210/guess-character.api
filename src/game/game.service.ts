@@ -540,13 +540,9 @@ export class GameService {
       });
       console.log(updatedPlayer.rating, 'updatedPlayer.rating');
 
-      const award = await this.awardsService.getAwardByRating(
-        updatedPlayer.rating,
-      );
-
-      if (!award) {
-        throw new Error('No award found for the current rating');
-      }
+      const award = await this.awardsService
+        .getAwardByRating(updatedPlayer.rating)
+        .catch(() => null);
 
       await this.prisma.player.update({
         where: { id: playerId },
@@ -557,7 +553,7 @@ export class GameService {
               session.difficulty,
               assignment.hints as unknown as HintLevel[],
             ),
-          awardId: award.id,
+          awardId: award?.id,
         },
       });
     }
