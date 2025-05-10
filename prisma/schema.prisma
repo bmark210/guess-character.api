@@ -8,24 +8,30 @@ datasource db {
 }
 
 model BaseEntity {
-  id                 String        @id @default(uuid())
-  name               String
-  nameEn             String?
-  numberType         NumberType    @default(SINGULAR)
-  description        String
-  chapter            Int           @default(1)
-  verse              Int           @default(1)
-  image              String?
-  type               CharacterType
-  level              Difficulty
-  book               Book
-  relatedCharacterId String?
-  assignments        Assignment[]
-  entity             Entity?
-  foodItem           FoodItem?
-  objectItem         ObjectItem?
-  person             Person?
-  place              Place?
+  id                      String                 @id @default(uuid())
+  name                    String
+  nameEn                  String?
+  numberType              NumberType             @default(SINGULAR)
+  description             String
+  chapter                 Int                    @default(1)
+  verse                   Int                    @default(1)
+  image                   String?
+  type                    CharacterType
+  level                   Difficulty
+  book                    Book
+  relatedCharacterId      String?
+  assignments             Assignment[]
+  entity                  Entity?
+  foodItem                FoodItem?
+  objectItem              ObjectItem?
+  person                  Person?
+  place                   Place?
+  HandbookBook            HandbookBook?          @relation(fields: [handbookBookId], references: [id])
+  handbookBookId          String?
+  HandbookCharacterType   HandbookCharacterType? @relation(fields: [handbookCharacterTypeId], references: [id])
+  handbookCharacterTypeId String?
+  HandbookDifficulty      HandbookDifficulty?    @relation(fields: [handbookDifficultyId], references: [id])
+  handbookDifficultyId    String?
 
   @@map("base_entities")
 }
@@ -126,6 +132,36 @@ model Award {
   Player      Player[]
 
   @@map("awards")
+}
+
+model HandbookBook {
+  id          String       @id @default(uuid())
+  name        String
+  description String
+  image       String?
+  baseEntity  BaseEntity[]
+
+  @@map("books")
+}
+
+model HandbookCharacterType {
+  id          String       @id @default(uuid())
+  name        String
+  description String
+  image       String?
+  baseEntity  BaseEntity[]
+
+  @@map("character_types")
+}
+
+model HandbookDifficulty {
+  id          String       @id @default(uuid())
+  name        String
+  description String
+  image       String?
+  baseEntity  BaseEntity[]
+
+  @@map("difficulties")
 }
 
 enum CharacterType {

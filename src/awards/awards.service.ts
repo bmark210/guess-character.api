@@ -17,8 +17,6 @@ export class AwardsService {
     return this.prisma.award.findMany();
   }
 
-  // raiting is 100
-  // in the table of awards is one item with raiting 100 but it is not given to the player
   async getAwardByRating(rating: number) {
     return this.prisma.award.findFirst({
       where: {

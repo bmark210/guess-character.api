@@ -516,46 +516,34 @@ export class GameService {
     // Check if the guess is correct
     const isCorrect = isGuessCloseEnough(assignment.character.name, guess);
 
-    // If guess is correct, mark player as winner
+    // If guess is correct, mark player as winner and update rating
     if (isCorrect) {
-      await this.prisma.assignment.update({
-        where: { id: assignment.id },
-        data: { isWinner: true },
-      });
-
       const currentPlayer = await this.prisma.player.findUnique({
         where: { id: playerId },
       });
 
-      const updatedPlayer = await this.prisma.player.update({
-        where: { id: playerId },
-        data: {
-          rating:
-            currentPlayer.rating +
-            calculatePlusRating(
-              session.difficulty,
-              assignment.hints as unknown as HintLevel[],
-            ),
-        },
-      });
-      console.log(updatedPlayer.rating, 'updatedPlayer.rating');
+      const ratingIncrease = calculatePlusRating(
+        session.difficulty,
+        assignment.hints as unknown as HintLevel[],
+      );
 
       const award = await this.awardsService
-        .getAwardByRating(updatedPlayer.rating)
+        .getAwardByRating(currentPlayer.rating + ratingIncrease)
         .catch(() => null);
 
-      await this.prisma.player.update({
-        where: { id: playerId },
-        data: {
-          rating:
-            currentPlayer.rating +
-            calculatePlusRating(
-              session.difficulty,
-              assignment.hints as unknown as HintLevel[],
-            ),
-          awardId: award?.id,
-        },
-      });
+      await this.prisma.$transaction([
+        this.prisma.assignment.update({
+          where: { id: assignment.id },
+          data: { isWinner: true },
+        }),
+        this.prisma.player.update({
+          where: { id: playerId },
+          data: {
+            rating: currentPlayer.rating + ratingIncrease,
+            awardId: award?.id,
+          },
+        }),
+      ]);
     }
 
     const updatedSession = await this.getSession(sessionCode);
