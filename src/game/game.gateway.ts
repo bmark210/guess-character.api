@@ -55,44 +55,33 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     data: { sessionCode: string; playerId: string },
   ) {
     try {
-      // await this.gameService.joinSession(data.playerId, data.sessionCode);
-
       client.data.sessionCode = data.sessionCode;
       client.data.playerId = data.playerId;
 
       await client.join(data.sessionCode);
 
-      const fullSession = await this.gameService.getSession(data.sessionCode);
-
-      if (fullSession.status === 'IN_PROGRESS') {
-        const sockets = await this.server.in(data.sessionCode).fetchSockets();
-
-        // todo: this is a hack to get the assignments to the new player
-        for (const player of fullSession.players) {
-          const session = await this.gameService.getSession(
-            data.sessionCode,
-            player.id,
-          );
-
-          // Find the socket for this player
-          const playerSocket = sockets.find(
-            (socket) => socket.data.playerId === player.id,
-          );
-          if (playerSocket) {
-            playerSocket?.emit('session_updated', {
-              session,
-            });
-          } else {
-            this.logger.warn(`Socket not found for player ${player.id}`);
-          }
-        }
-      }
+      let fullSession = await this.gameService.getSession(data.sessionCode);
 
       if (fullSession.status === 'WAITING_FOR_PLAYERS') {
-        this.server.to(data.sessionCode).emit('session_updated', {
-          session: fullSession,
-          message: 'Waiting for players',
-        });
+        await this.gameService.joinSession(data.playerId, data.sessionCode);
+        fullSession = await this.gameService.getSession(data.sessionCode);
+      }
+
+      const sockets = await this.server.in(data.sessionCode).fetchSockets();
+
+      for (const player of fullSession.players) {
+        const session = await this.gameService.getSession(
+          data.sessionCode,
+          player.id,
+        );
+        const playerSocket = sockets.find(
+          (socket) => socket.data.playerId === player.id,
+        );
+        if (playerSocket) {
+          playerSocket.emit('session_updated', { session });
+        } else {
+          this.logger.warn(`Socket not found for player ${player.id}`);
+        }
       }
     } catch (err) {
       this.logger.error(`Error joining session: ${err.message}`);
