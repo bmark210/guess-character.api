@@ -6,6 +6,7 @@ import { CharacterType, HintLevel } from '@prisma/client';
 import { calculatePlusRating } from 'src/utils/calcPlusReiting';
 import { AwardsService } from 'src/awards/awards.service';
 import { GameGateway } from './game.gateway';
+import shuffle from 'lodash'; // Добавьте в начало файла, если используете lodash
 
 @Injectable()
 export class GameService {
@@ -103,7 +104,7 @@ export class GameService {
     //   },
     // });
 
-    return this.getSession(sessionCode, playerId);
+    return this.getSession(sessionCode);
   }
 
   async getSessionPlayers(sessionCode: string) {
@@ -153,19 +154,17 @@ export class GameService {
     });
   }
 
-  async getSession(sessionCode: string, currentPlayerId?: string) {
-    // A) load *all* assignments with full character
-    const raw = await this.prisma.gameSession.findUnique({
+  async getSession(sessionCode: string) {
+    if (!sessionCode) {
+      throw new Error('Session code is required');
+    }
+    return this.prisma.gameSession.findUnique({
       where: { code: sessionCode },
       include: {
         players: true,
         assignments: {
           include: {
-            player: {
-              include: {
-                award: true,
-              },
-            },
+            player: { include: { award: true } },
             character: {
               include: {
                 person: true,
@@ -179,50 +178,6 @@ export class GameService {
         },
       },
     });
-
-    if (!raw) throw new Error('Session not found');
-
-    // B) mask out _other_ players' character payloads
-    const assignments = raw.assignments.map((a) => {
-      const {
-        id,
-        sessionId,
-        playerId,
-        characterId,
-        guess_tries,
-        isWinner,
-        player,
-        character,
-        hints,
-      } = a;
-
-      // expose full `character` only to its owner; everyone else just gets an { id }
-      return {
-        id,
-        sessionId,
-        playerId,
-        characterId,
-        guess_tries,
-        isWinner,
-        player,
-        hints,
-        character:
-          playerId === currentPlayerId
-            ? {
-                id: character.id,
-                type: character.type,
-                book: character.book,
-                level: character.level,
-              }
-            : character,
-      };
-    });
-
-    // C) override the assignments and return
-    return {
-      ...raw,
-      assignments,
-    };
   }
 
   async updateSession(sessionCode: string, update: any) {
@@ -242,6 +197,24 @@ export class GameService {
     });
   }
 
+  // async startSession(sessionCode: string) {
+  //   try {
+  //     const session = await this.getSession(sessionCode);
+  //     if (!session) {
+  //       throw new Error('Session not found');
+  //     }
+
+  //     await this.assignCharactersToPlayers(sessionCode);
+  //     await this.updateGameStatus(sessionCode, 'IN_PROGRESS');
+  //     await this.gameGateway.sendUpdatedSession(sessionCode);
+
+  //     // return session;
+  //   } catch (error) {
+  //     console.error('Error starting session:', error);
+  //     throw error;
+  //   }
+  // }
+
   async removePlayerFromSession(playerId: string) {
     // First, get the player to find their session
     const player = await this.prisma.player.findUnique({
@@ -260,89 +233,17 @@ export class GameService {
     });
   }
 
-  // async assignCharactersToPlayers(sessionCode: string) {
-  //   const session = await this.prisma.gameSession.findUnique({
-  //     where: { code: sessionCode },
-  //     include: { players: true },
-  //   });
-
-  //   if (!session) {
-  //     throw new Error('Session not found');
-  //   }
-
-  //   const characters = await this.prisma.baseEntity.findMany({
-  //     where: {
-  //       type: { in: session.characterTypes },
-  //       level: session.difficulty,
-  //       book: { in: session.books },
-  //     },
-  //     include: {
-  //       person: true,
-  //       entity: true,
-  //       foodItem: true,
-  //       objectItem: true,
-  //       place: true,
-  //     },
-  //   });
-
-  //   if (!characters.length) {
-  //     throw new Error('No suitable characters found');
-  //   }
-
-  //   // Shuffle characters array
-  //   const shuffledCharacters = [...characters].sort(() => Math.random() - 0.5);
-
-  //   // Assign characters to players
-  //   const assignments = await Promise.all(
-  //     session.players.map(async (player, index) => {
-  //       const character = shuffledCharacters[index % shuffledCharacters.length];
-  //       return this.prisma.round.create({
-  //         data: {
-  //           sessionId: session.id,
-  //           playerId: player.id,
-  //           characterId: character.id,
-  //         },
-  //         include: {
-  //           character: {
-  //             include: {
-  //               person: true,
-  //               entity: true,
-  //               foodItem: true,
-  //               objectItem: true,
-  //               place: true,
-  //             },
-  //           },
-  //           player: true,
-  //         },
-  //       });
-  //     }),
-  //   );
-
-  //   return assignments;
-  // }
-
   async assignCharactersToPlayers(sessionCode: string) {
-    // 1. Load session with its players
+    // 1. Загрузить сессию с игроками
     const session = await this.prisma.gameSession.findUnique({
       where: { code: sessionCode },
       include: { players: true },
     });
 
-    if (!session) {
-      throw new Error('Session not found');
-    }
+    if (!session) throw new Error('Session not found');
+    if (!session.players.length) throw new Error('No players in session');
 
-    // Verify all players exist
-    const playerIds = session.players.map((player) => player.id);
-    const existingPlayers = await this.prisma.player.findMany({
-      where: { id: { in: playerIds } },
-    });
-
-    if (existingPlayers.length !== playerIds.length) {
-      throw new Error('Some players do not exist in the database');
-    }
-
-    // 2. Pick all BaseEntity records matching the session's filters
+    // 2. Получить подходящих персонажей
     const characters = await this.prisma.baseEntity.findMany({
       where: {
         type: { in: session.characterTypes },
@@ -358,22 +259,29 @@ export class GameService {
       },
     });
 
-    if (characters.length === 0) {
-      throw new Error('No suitable characters found');
+    if (characters.length < session.players.length) {
+      throw new Error('Not enough characters for all players');
     }
 
-    // 3. Shuffle the pool
-    const shuffled = characters.sort(() => Math.random() - 0.5);
+    // 3. Перемешать персонажей
+    const shuffled =
+      typeof shuffle === 'function'
+        ? shuffle(characters)
+        : characters.sort(() => Math.random() - 0.5);
 
-    // 4. Create one Assignment per player
-    const assignments = await Promise.all(
-      session.players.map((player, idx) => {
-        const character = shuffled[idx % shuffled.length];
-        return this.prisma.assignment.create({
+    // 4. Удалить старые назначения (если есть)
+    await this.prisma.assignment.deleteMany({
+      where: { sessionId: session.id },
+    });
+
+    // 5. Создать назначения для игроков (атомарно)
+    await this.prisma.$transaction(
+      session.players.map((player, idx) =>
+        this.prisma.assignment.create({
           data: {
             sessionId: session.id,
             playerId: player.id,
-            characterId: character.id,
+            characterId: shuffled[idx].id,
           },
           include: {
             character: {
@@ -387,11 +295,9 @@ export class GameService {
             },
             player: true,
           },
-        });
-      }),
+        }),
+      ),
     );
-
-    return assignments;
   }
 
   async getPlayersAssignments(sessionCode: string, currentPlayerId: string) {
@@ -698,6 +604,8 @@ export class GameService {
 
     return assignment;
   }
+
+  startGame;
 
   // async generatePlayerAssignmentsForNewPlayer(
   // sessionCode: string,

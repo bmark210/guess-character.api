@@ -49,6 +49,34 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // });
   }
 
+  async startGameSession(sessionCode: string) {
+    try {
+      this.logger.log(`Starting game session: ${sessionCode}`);
+      const session = await this.gameService.getSession(sessionCode);
+      if (!session) {
+        throw new Error('Session not found');
+      }
+      if (session.status !== 'WAITING_FOR_PLAYERS') {
+        throw new Error('Session is not in a state to start the game');
+      }
+      // Update game status to IN_PROGRESS
+      await this.gameService.updateGameStatus(sessionCode, 'IN_PROGRESS');
+      // Assign characters to all players
+      await this.gameService.assignCharactersToPlayers(sessionCode);
+      // Notify all players in the session
+      const updatedSession = await this.gameService.getSession(sessionCode);
+      this.server.to(sessionCode).emit('session_updated', {
+        session: updatedSession,
+        message: 'Игра началась',
+      });
+    } catch (err) {
+      this.logger.error(`Error starting game session: ${err.message}`);
+      this.server.to(sessionCode).emit('error', {
+        message: err.message,
+      });
+    }
+  }
+
   @SubscribeMessage('join_session')
   async handleJoinSession(
     client: Socket,
@@ -70,10 +98,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const sockets = await this.server.in(data.sessionCode).fetchSockets();
 
       for (const player of fullSession.players) {
-        const session = await this.gameService.getSession(
-          data.sessionCode,
-          player.id,
-        );
+        const session = await this.gameService.getSession(data.sessionCode);
         const playerSocket = sockets.find(
           (socket) => socket.data.playerId === player.id,
         );
@@ -98,11 +123,19 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('start_game')
-  async handleStartGame(client: Socket, data: { sessionCode: string }) {
+  async handleStartGame(
+    client: Socket,
+    data: { sessionCode: string; playerId: string },
+  ) {
     try {
       const session = await this.gameService.getSession(data.sessionCode);
       if (!session) {
         throw new Error('Session not found');
+      }
+
+      // Проверяем, является ли игрок создателем игры
+      if (session.creatorId !== data.playerId) {
+        throw new Error('Only the game creator can start the game');
       }
 
       // Update game status to IN_PROGRESS
@@ -117,33 +150,34 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       // Get all sockets in the session room
-      // const sockets = await this.server.in(data.sessionCode).fetchSockets();
+      const sockets = await this.server.in(data.sessionCode).fetchSockets();
 
       // Send assignments to each player in the session
-      // for (const assignment of session.assignments) {
-      // const assignments = await this.gameService.getPlayersAssignments(
-      //   data.sessionCode,
-      //   assignment.playerId,
-      // );
+      for (const player of updatedSession.players) {
+        const assignments = await this.gameService.getPlayersAssignments(
+          data.sessionCode,
+          player.id,
+        );
 
-      // // Find the socket for this player
-      // const playerSocket = sockets.find(
-      //   (socket) => socket.data.playerId === assignment.playerId,
-      // );
+        // Find the socket for this player
+        const playerSocket = sockets.find(
+          (socket) => socket.data.playerId === player.id,
+        );
 
-      //   if (playerSocket) {
-      //     playerSocket.emit('character_assignments', {
-      //       session,
-      //     });
-      //   } else {
-      //     this.logger.warn(`Socket not found for player`);
-      //   }
-      // }
+        if (playerSocket) {
+          playerSocket.emit('character_assignments', {
+            assignments,
+            session: updatedSession,
+          });
+        } else {
+          this.logger.warn(`Socket not found for player ${player.id}`);
+        }
+      }
 
       // Notify all players in the session
       this.server.to(data.sessionCode).emit('session_updated', {
         session: updatedSession,
-        message: 'Game started',
+        message: 'Игра началась',
       });
     } catch (err) {
       this.logger.error(`Error starting game: ${err.message}`);
@@ -160,18 +194,51 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.logger.log(
         `Client ${client.id} leaving session ${data.sessionCode}`,
       );
-      //   const sessionCode = client.data.sessionCode;
-      //   const playerId = client.data.playerId;
-      //   if (!sessionCode || !playerId) return;
-      //   await this.gameService.removePlayerFromSession(playerId);
-      //   const session = await this.gameService.getSession(sessionCode);
-      //   this.server.to(sessionCode).emit('session_updated', {
-      //     session,
-      //     message: `Player ${playerId} disconnected`,
-      //   });
+
+      // Проверяем, существует ли сессия
+      const session = await this.gameService.getSession(data.sessionCode);
+      if (!session) {
+        throw new Error('Session not found');
+      }
+
+      // Проверяем, есть ли игрок в сессии
+      const playerInSession = session.players.some(
+        (player) => player.id == data.playerId,
+      );
+      console.log('playerInSession:', playerInSession);
+      if (!playerInSession) {
+        throw new Error('Player not found in session');
+      }
+
+      // Удаляем игрока из сессии
+      await this.gameService.removePlayerFromSession(data.playerId);
+
+      // Покидаем комнату socket.io
+      await client.leave(data.sessionCode);
+
+      // Получаем обновлённую сессию
+      const updatedSession = await this.gameService.getSession(
+        data.sessionCode,
+      );
+
+      // Оповещаем всех клиентов в комнате
+      this.server.to(data.sessionCode).emit('session_updated', {
+        session: updatedSession,
+        message: `Player ${data.playerId} left the session`,
+      });
     } catch (err) {
-      //   this.logger.error(`Error leaving session: ${err.message}`);
-      //   client.emit('error', { message: err.message });
+      this.logger.error(`Error leaving session: ${err.message}`);
+      client.emit('error', { message: err.message });
+    }
+  }
+
+  async sendUpdatedSession(sessionCode: string) {
+    try {
+      const session = await this.gameService.getSession(sessionCode);
+      this.server.to(sessionCode).emit('session_updated', { session });
+    } catch (err) {
+      this.logger.error(`Error fetching session: ${err.message}`);
+      this.server.to(sessionCode).emit('error', { message: err.message });
     }
   }
 }

@@ -9,13 +9,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { GameService } from './game.service';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBody,
-  ApiParam,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { Book, CharacterType, Difficulty, HintLevel } from '@prisma/client';
 
 @ApiTags('Game')
@@ -25,17 +19,6 @@ export class GameController {
 
   @Post('player')
   @ApiOperation({ summary: 'Create a new player or get existing one' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string' },
-        avatarUrl: { type: 'string' },
-        telegramId: { type: 'string' },
-      },
-      required: ['name', 'avatarUrl', 'telegramId'],
-    },
-  })
   async getPlayer(
     @Body()
     body: {
@@ -62,15 +45,6 @@ export class GameController {
 
   @Post('sessions')
   @ApiOperation({ summary: 'Create a new game session' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        creatorId: { type: 'string' },
-      },
-      required: ['creatorId'],
-    },
-  })
   createSession(
     @Body()
     body: {
@@ -91,15 +65,6 @@ export class GameController {
     name: 'sessionCode',
     description: 'Code of the game session to join',
   })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        playerId: { type: 'string' },
-      },
-      required: ['playerId'],
-    },
-  })
   @ApiResponse({ status: 200, description: 'Successfully joined the session' })
   @ApiResponse({ status: 404, description: 'Session not found' })
   @ApiResponse({ status: 400, description: 'Invalid request' })
@@ -117,32 +82,37 @@ export class GameController {
     }
   }
 
+  @Post('sessions/start')
+  @ApiOperation({ summary: 'Start a game session' })
+  @ApiParam({
+    name: 'sessionCode',
+    description: 'Code of the game session to start',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Game session started successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Session not found' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  async startSession(@Body() body: { sessionCode: string; playerId: string }) {
+    try {
+      return await this.gameService.startSession(body.sessionCode);
+    } catch (error) {
+      if (error.message === 'Session not found') {
+        throw new HttpException('Session not found', HttpStatus.NOT_FOUND);
+      }
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
   // @Post('start-round')
   // @ApiOperation({ summary: 'Start a new round in the game session' })
-  // @ApiBody({
-  //   schema: {
-  //     type: 'object',
-  //     properties: {
-  //       sessionId: { type: 'string' },
-  //     },
-  //     required: ['sessionId'],
-  //   },
-  // })
   // startRound(@Body() body: { sessionId: string }) {
   //   return this.gameService.startRound(body.sessionId);
   // }
 
   @Post('end-round')
   @ApiOperation({ summary: 'End the current round in the game session' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        sessionId: { type: 'string' },
-      },
-      required: ['sessionId'],
-    },
-  })
   endRound(@Body() body: { sessionId: string }) {
     return this.gameService.endRound(body.sessionId);
   }
@@ -156,17 +126,6 @@ export class GameController {
 
   @Post('take-guess')
   @ApiOperation({ summary: 'Take a guess in the game session' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        sessionCode: { type: 'string' },
-        playerId: { type: 'string' },
-        guess: { type: 'string' },
-      },
-      required: ['sessionCode', 'playerId', 'guess'],
-    },
-  })
   takeGuess(
     @Body() body: { sessionCode: string; playerId: string; guess: string },
   ) {
