@@ -82,28 +82,28 @@ export class GameController {
     }
   }
 
-  @Post('sessions/start')
-  @ApiOperation({ summary: 'Start a game session' })
-  @ApiParam({
-    name: 'sessionCode',
-    description: 'Code of the game session to start',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Game session started successfully',
-  })
-  @ApiResponse({ status: 404, description: 'Session not found' })
-  @ApiResponse({ status: 400, description: 'Invalid request' })
-  async startSession(@Body() body: { sessionCode: string; playerId: string }) {
-    try {
-      return await this.gameService.startSession(body.sessionCode);
-    } catch (error) {
-      if (error.message === 'Session not found') {
-        throw new HttpException('Session not found', HttpStatus.NOT_FOUND);
-      }
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
+  // @Post('sessions/start')
+  // @ApiOperation({ summary: 'Start a game session' })
+  // @ApiParam({
+  //   name: 'sessionCode',
+  //   description: 'Code of the game session to start',
+  // })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Game session started successfully',
+  // })
+  // @ApiResponse({ status: 404, description: 'Session not found' })
+  // @ApiResponse({ status: 400, description: 'Invalid request' })
+  // async startSession(@Body() body: { sessionCode: string; playerId: string }) {
+  //   try {
+  //     return await this.gameService.startSession(body.sessionCode);
+  //   } catch (error) {
+  //     if (error.message === 'Session not found') {
+  //       throw new HttpException('Session not found', HttpStatus.NOT_FOUND);
+  //     }
+  //     throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+  //   }
+  // }
 
   // @Post('start-round')
   // @ApiOperation({ summary: 'Start a new round in the game session' })

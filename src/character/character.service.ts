@@ -31,13 +31,13 @@ export class CharacterService {
       // Check for duplicate name
       const existing = await tx.baseEntity.findFirst({
         where: {
-          OR: [{ name: data.name }],
+          OR: [{ nameEn: data.nameEn }],
         },
       });
 
       if (existing) {
         throw new Error(
-          `❌ Character with the same name already exists (name: "${data.name}")`,
+          `❌ Character with the same name already exists (name: "${data.nameEn}")`,
         );
       }
 
