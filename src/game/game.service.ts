@@ -614,7 +614,7 @@ export class GameService {
   }
 
   async createNewAssignment(sessionCode: string, playerId: string) {
-    // 1. Получить сессию
+    // 1. Get session
     const session = await this.prisma.gameSession.findUnique({
       where: { code: sessionCode },
       include: {
@@ -631,12 +631,12 @@ export class GameService {
       throw new Error('Session not found');
     }
 
-    // 2. Получить все уже назначенные персонажи в сессии
+    // 2. Get all assigned characters in session
     const usedCharacterIds = session.assignments.map(
       (assignment) => assignment.characterId,
     );
 
-    // 3. Найти доступных персонажей (исключая уже используемых)
+    // 3. Find available characters (excluding already used ones)
     const availableCharacters = await this.prisma.baseEntity.findMany({
       where: {
         type: { in: session.characterTypes },
@@ -657,13 +657,13 @@ export class GameService {
       throw new Error('No available characters for assignment');
     }
 
-    // 4. Перемешать персонажей (как в assignCharactersToPlayers)
+    // 4. Shuffle characters
     const shuffled = availableCharacters.sort(() => Math.random() - 0.5);
 
-    // 5. Выбрать первого персонажа из перемешанного списка
+    // 5. Select first character from shuffled list
     const selectedCharacter = shuffled[0];
 
-    // 6. Удалить старое назначение игрока (если есть)
+    // 6. Delete old player assignment if exists
     await this.prisma.assignment.deleteMany({
       where: {
         playerId,
@@ -671,8 +671,8 @@ export class GameService {
       },
     });
 
-    // 7. Создать новое назначение
-    const newAssignment = await this.prisma.assignment.create({
+    // 7. Create new assignment
+    await this.prisma.assignment.create({
       data: {
         sessionId: session.id,
         playerId,
@@ -695,7 +695,36 @@ export class GameService {
         },
       },
     });
-    console.log('newAssignment', newAssignment);
+
+    // 8. Return updated session
+    return await this.prisma.gameSession.findUnique({
+      where: { code: sessionCode },
+      include: {
+        players: {
+          include: {
+            award: true,
+          },
+        },
+        assignments: {
+          include: {
+            character: {
+              include: {
+                person: true,
+                entity: true,
+                foodItem: true,
+                objectItem: true,
+                place: true,
+              },
+            },
+            player: {
+              include: {
+                award: true,
+              },
+            },
+          },
+        },
+      },
+    });
   }
 
   async removeWinnerStatus(sessionCode: string, playerId: string) {

@@ -251,9 +251,57 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       console.log('sessionCode', sessionCode);
       console.log('playerId', playerId);
 
+      // Убеждаемся, что клиент присоединен к комнате
+      if (!client.data.sessionCode || client.data.sessionCode !== sessionCode) {
+        await client.join(sessionCode);
+        client.data.sessionCode = sessionCode;
+        client.data.playerId = playerId;
+      }
+
       await this.gameService.removeWinnerStatus(sessionCode, playerId);
-      await this.gameService.createNewAssignment(sessionCode, playerId);
-      await this.sendUpdatedSession(sessionCode);
+      const updatedSession = await this.gameService.createNewAssignment(
+        sessionCode,
+        playerId,
+      );
+
+      if (!updatedSession) {
+        throw new Error('Failed to create new assignment - session is null');
+      }
+
+      // Добавляем логирование для отладки
+      this.logger.log(
+        `About to emit session_updated to sessionCode: ${sessionCode}`,
+      );
+      this.logger.log(
+        `UpdatedSession is: ${updatedSession ? 'not null' : 'null'}`,
+      );
+
+      // // Получаем все сокеты в комнате сессии
+      // const sockets = await this.server.in(sessionCode).fetchSockets();
+      // this.logger.log(`Found ${sockets.length} sockets in room ${sessionCode}`);
+
+      // // Отправляем обновление каждому игроку в сессии
+      // for (const player of updatedSession.players) {
+      //   const playerSocket = sockets.find(
+      //     (socket) => socket.data.playerId === player.id,
+      //   );
+      //   if (playerSocket) {
+      //     playerSocket.emit('session_updated', {
+      //       session: updatedSession,
+      //       message: 'Новый персонаж получен',
+      //     });
+      //   } else {
+      //     this.logger.warn(`Socket not found for player ${player.id}`);
+      //   }
+      // }
+
+      // Также отправляем общее сообщение в комнату
+      this.server.to(sessionCode).emit('session_updated', {
+        session: updatedSession,
+        message: 'Новый персонаж получен',
+      });
+
+      this.logger.log(`Successfully emitted session_updated to ${sessionCode}`);
     } catch (err) {
       this.logger.error(`Error getting new character: ${err.message}`);
       client.emit('error', { message: err.message });
