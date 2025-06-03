@@ -587,10 +587,18 @@ export class GameService {
   }
 
   async getUserAssegnment(sessionCode: string, playerId: string) {
+    const session = await this.prisma.gameSession.findUnique({
+      where: { code: sessionCode },
+    });
+
+    if (!session) {
+      throw new Error('Session not found');
+    }
+
     const assignment = await this.prisma.assignment.findFirst({
       where: {
         playerId,
-        sessionId: sessionCode,
+        sessionId: session.id,
       },
       include: {
         character: true,
@@ -605,7 +613,108 @@ export class GameService {
     return assignment;
   }
 
-  startGame;
+  async createNewAssignment(sessionCode: string, playerId: string) {
+    // 1. Получить сессию
+    const session = await this.prisma.gameSession.findUnique({
+      where: { code: sessionCode },
+      include: {
+        players: true,
+        assignments: {
+          include: {
+            character: true,
+          },
+        },
+      },
+    });
+
+    if (!session) {
+      throw new Error('Session not found');
+    }
+
+    // 2. Получить все уже назначенные персонажи в сессии
+    const usedCharacterIds = session.assignments.map(
+      (assignment) => assignment.characterId,
+    );
+
+    // 3. Найти доступных персонажей (исключая уже используемых)
+    const availableCharacters = await this.prisma.baseEntity.findMany({
+      where: {
+        type: { in: session.characterTypes },
+        level: session.difficulty,
+        book: { in: session.books },
+        id: { notIn: usedCharacterIds },
+      },
+      include: {
+        person: true,
+        entity: true,
+        foodItem: true,
+        objectItem: true,
+        place: true,
+      },
+    });
+
+    if (availableCharacters.length === 0) {
+      throw new Error('No available characters for assignment');
+    }
+
+    // 4. Перемешать персонажей (как в assignCharactersToPlayers)
+    const shuffled = availableCharacters.sort(() => Math.random() - 0.5);
+
+    // 5. Выбрать первого персонажа из перемешанного списка
+    const selectedCharacter = shuffled[0];
+
+    // 6. Удалить старое назначение игрока (если есть)
+    await this.prisma.assignment.deleteMany({
+      where: {
+        playerId,
+        sessionId: session.id,
+      },
+    });
+
+    // 7. Создать новое назначение
+    const newAssignment = await this.prisma.assignment.create({
+      data: {
+        sessionId: session.id,
+        playerId,
+        characterId: selectedCharacter.id,
+      },
+      include: {
+        character: {
+          include: {
+            person: true,
+            entity: true,
+            foodItem: true,
+            objectItem: true,
+            place: true,
+          },
+        },
+        player: {
+          include: {
+            award: true,
+          },
+        },
+      },
+    });
+
+    return newAssignment;
+  }
+
+  async removeWinnerStatus(sessionCode: string, playerId: string) {
+    console.log('sessionCode', sessionCode);
+    console.log('playerId', playerId);
+
+    await this.prisma.gameSession.update({
+      where: { code: sessionCode },
+      data: {
+        assignments: {
+          updateMany: {
+            where: { playerId, isWinner: true },
+            data: { isWinner: false },
+          },
+        },
+      },
+    });
+  }
 
   // async generatePlayerAssignmentsForNewPlayer(
   // sessionCode: string,

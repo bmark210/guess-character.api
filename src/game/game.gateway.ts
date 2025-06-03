@@ -241,4 +241,26 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(sessionCode).emit('error', { message: err.message });
     }
   }
+
+  @SubscribeMessage('get_new_character')
+  async handleGetNewCharacter(
+    client: Socket,
+    { playerId, sessionCode }: { playerId: string; sessionCode: string },
+  ) {
+    try {
+      console.log('sessionCode', sessionCode);
+      console.log('playerId', playerId);
+
+      await this.gameService.removeWinnerStatus(sessionCode, playerId);
+      await this.gameService.createNewAssignment(sessionCode, playerId);
+      const updatedSession = await this.gameService.getSession(sessionCode);
+      this.server.to(sessionCode).emit('session_updated', {
+        session: updatedSession,
+        message: 'Новый персонаж получен',
+      });
+    } catch (err) {
+      this.logger.error(`Error getting new character: ${err.message}`);
+      client.emit('error', { message: err.message });
+    }
+  }
 }
