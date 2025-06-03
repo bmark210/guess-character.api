@@ -695,8 +695,7 @@ export class GameService {
         },
       },
     });
-
-    return newAssignment;
+    console.log('newAssignment', newAssignment);
   }
 
   async removeWinnerStatus(sessionCode: string, playerId: string) {

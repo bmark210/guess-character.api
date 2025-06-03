@@ -253,11 +253,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       await this.gameService.removeWinnerStatus(sessionCode, playerId);
       await this.gameService.createNewAssignment(sessionCode, playerId);
-      const updatedSession = await this.gameService.getSession(sessionCode);
-      this.server.to(sessionCode).emit('session_updated', {
-        session: updatedSession,
-        message: 'Новый персонаж получен',
-      });
+      await this.sendUpdatedSession(sessionCode);
     } catch (err) {
       this.logger.error(`Error getting new character: ${err.message}`);
       client.emit('error', { message: err.message });
